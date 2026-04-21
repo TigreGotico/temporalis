@@ -208,7 +208,7 @@ class WeatherProvider:
                         data[k]["max_time"] = new_data[k]["time"]
                     offset = new_data[k]["max_val"] - new_data[k]["min_val"]
                     new_data[k]["val"] = new_data[k]["min_val"] + offset / 2
-                except:
+                except Exception:
                     pass
                 try:
                     if new_data[k]["prob_min"] < data[k]["prob_min"]:
@@ -217,7 +217,7 @@ class WeatherProvider:
                         data[k]["prob_max"] = new_data[k]["prob_max"]
                     offset = new_data[k]["prob_max"] - new_data[k]["prob_min"]
                     new_data[k]["prob"] = new_data[k]["prob_min"] + offset / 2
-                except:
+                except Exception:
                     pass
 
         return data

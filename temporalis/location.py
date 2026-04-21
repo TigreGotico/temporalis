@@ -11,7 +11,7 @@ def geolocate(address, try_all=True):
         # see https://astral.readthedocs.io/en/latest/#cities
         a = lookup(address, database())
         return a.latitude, a.longitude
-    except:
+    except Exception:
         pass  # use online geocoder
 
     location_data = geocoder.geonames(address, method='details', key='jarbas')

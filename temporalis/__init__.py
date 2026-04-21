@@ -32,8 +32,8 @@ class DataPoint:
         return pendulum.from_timestamp(stamp, tz=tz)
 
     def as_dict(self):
-        data = self.__dict__
-        for k in dict(data):
+        data = dict(self.__dict__)
+        for k in list(data):
             if not data[k]:
                 data.pop(k)
         return data
@@ -53,13 +53,13 @@ class DataPoint:
             dt = data["time"]
             try:
                 dt = DataPoint._stamp_to_datetime(data["time"], tz)
-            except:
+            except Exception:
                 pass
         if data.get("datetime"):
             dt = data["datetime"]
             try:
                 dt = DataPoint._stamp_to_datetime(data["datetime"], tz)
-            except:
+            except Exception:
                 pass
 
         time = min_time = max_time = dt
@@ -126,11 +126,11 @@ class WeatherData:
         return int_to_weekday(self.datetime.weekday())
 
     def as_dict(self):
-        data = self.__dict__
-        for k in dict(data):
+        data = dict(self.__dict__)
+        for k in list(data):
             try:
                 data[k] = data[k].as_dict()
-            except:
+            except Exception:
                 pass
             if not data[k]:
                 data.pop(k)
@@ -151,7 +151,7 @@ class WeatherData:
             dt = data["datetime"]
             try:
                 dt = point._stamp_to_datetime(data["datetime"])
-            except:
+            except Exception:
                 pass
             point.datetime = dt
 
