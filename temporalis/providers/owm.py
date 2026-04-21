@@ -4,23 +4,20 @@ from temporalis import WeatherData, DataPoint
 
 
 class OWM(WeatherProvider):
+    default_key = "28fed22898afd4717ce5a1535da1f78c"
 
     def __init__(self, lat, lon, key=None,
                  date=None, units="metric"):
-        if not key:
-            raise ValueError("OWM requires an API key. Get one at https://openweathermap.org/api")
         if units in ["english", "imperial", "us"]:
             units = "imperial"
         elif units != "metric":
             units = "si"
         super().__init__(lat, lon, date, units)
-        self.key = key
+        self.key = key or self.default_key
         self._request()
 
     @staticmethod
     def from_address(address, key=None):
-        if not key:
-            raise ValueError("OWM requires an API key. Get one at https://openweathermap.org/api")
         lat, lon = geolocate(address)
         return OWM(lat, lon, key)
 
