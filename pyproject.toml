@@ -25,6 +25,9 @@ Homepage = "https://github.com/OpenJarbas/temporalis"
 [project.optional-dependencies]
 test = ["pytest", "responses"]
 
+[tool.pytest.ini_options]
+addopts = "-p no:ovoscope"
+
 [tool.setuptools.packages.find]
 where = ["."]
 include = ["temporalis*"]
