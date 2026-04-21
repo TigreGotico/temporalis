@@ -1,0 +1,30 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "temporalis"
+version = "0.2.0"
+description = "Unified weather service APIs with sun/moon data"
+license = { text = "Apache-2.0" }
+authors = [{ name = "JarbasAl", email = "jarbasai@mailfence.com" }]
+readme = "readme.md"
+requires-python = ">=3.10"
+dependencies = [
+    "requests",
+    "requests-cache>=1,<2",
+    "timezonefinder",
+    "geopy",
+    "pendulum>=2,<3",
+    "astral>=3,<4",
+]
+
+[project.urls]
+Homepage = "https://github.com/OpenJarbas/temporalis"
+
+[project.optional-dependencies]
+test = ["pytest", "responses"]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["temporalis*"]
