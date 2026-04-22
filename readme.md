@@ -3,6 +3,54 @@
 Unified weather abstraction library for Python. Query five different weather
 services through one consistent API, with built-in sun and moon data.
 
+## Why another weather library?
+
+Most Python weather packages are thin wrappers around a single API. Switch
+providers and you rewrite your whole application. Temporalis solves a different
+problem: **make the provider an implementation detail**.
+
+Every provider — whether it's a global commercial service, a national government
+API, or a free open-data feed — returns the same objects: `WeatherData`,
+`DataPoint`, `HourlyForecast`, `DailyForecast`. Your code never touches raw JSON.
+
+### The data model earns its keep
+
+**`DataPoint` is not a float.** A temperature reading has a value, but it also
+has a unit, a min, a max, a probability, and a timestamp. A wind speed has a
+unit that differs between providers. `DataPoint` captures all of that in one
+object that serialises cleanly and degrades gracefully when a provider doesn't
+supply a field:
+
+```python
+temp = wx.weather.temperature
+print(temp.value, temp.units)       # 18.5 ºC
+print(temp.min_val, temp.max_val)   # daily range, if the provider supplies it
+```
+
+**Sun and moon are first-class, not bolted on.** Every provider exposes `dawn`,
+`dusk`, `sunrise`, `sunset`, `noon`, `moon_phase`, and `moon_phase_name` with no
+extra API call and no extra key — computed from coordinates via `astral`. Moon
+phase names are available in eight languages.
+
+**Swap providers without changing your code:**
+
+```python
+# works identically for OWM, OpenMeteo, MetNo, IPMA, NWS
+for day in wx.days:
+    print(day.weekday, day.temperature, day.precipitation)
+```
+
+**Select by name at runtime**, not by import path:
+
+```python
+import temporalis.providers.registry   # registers all built-ins
+from temporalis.providers import WeatherProvider
+
+wx = WeatherProvider.get("metno", lat, lon)
+print(WeatherProvider.available())
+# ['ipma', 'metno', 'nws', 'openmeteo', 'openmeteo_historical', 'owm']
+```
+
 ## Install
 
 ```bash
