@@ -183,6 +183,23 @@ class IPMA(WeatherProvider):
         else:
             self.data["daily"] = {"summary": "forecast", "icon": "forecast", "data": []}
 
+    def _fetch_alerts(self):
+        url = f"{_BASE}/forecast/warnings/warnings_www.json"
+        try:
+            warnings = self.session.get(url).json()
+            for w in warnings:
+                self._alerts.append({
+                    "event": w.get("awarenessTypeName", ""),
+                    "severity": w.get("awarenessLevelID", ""),
+                    "headline": w.get("text", ""),
+                    "description": w.get("text", ""),
+                    "onset": w.get("startTime"),
+                    "expires": w.get("endTime"),
+                })
+        except Exception:
+            pass
+
     def _request(self):
         self._request_current()
         self._request_daily()
+        self._fetch_alerts()

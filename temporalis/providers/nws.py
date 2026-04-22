@@ -79,7 +79,6 @@ class NWS(WeatherProvider):
         return {"User-Agent": _USER_AGENT, "Accept": "application/geo+json"}
 
     def _request(self):
-        # Step 1: resolve grid from lat/lon
         points_url = _POINTS_URL.format(lat=round(self.latitude, 4),
                                         lon=round(self.longitude, 4))
         points = self.session.get(points_url, headers=self._headers()).json()
@@ -93,6 +92,7 @@ class NWS(WeatherProvider):
 
         self._parse_hourly(self.session.get(hourly_url, headers=self._headers()).json(), tz)
         self._parse_daily(self.session.get(forecast_url, headers=self._headers()).json(), tz)
+        self._fetch_alerts()
 
     def _parse_hourly(self, raw, tz):
         periods = raw.get("properties", {}).get("periods", [])
@@ -224,3 +224,20 @@ class NWS(WeatherProvider):
         if "clear" in t or "sunny" in t or "fair" in t:
             return "clear"
         return "clouds"
+
+    def _fetch_alerts(self):
+        url = f"https://api.weather.gov/alerts/active?point={self.latitude},{self.longitude}"
+        try:
+            raw = self.session.get(url, headers=self._headers()).json()
+            for feat in raw.get("features", []):
+                p = feat.get("properties", {})
+                self._alerts.append({
+                    "event": p.get("event", ""),
+                    "severity": p.get("severity", ""),
+                    "headline": p.get("headline", ""),
+                    "description": p.get("description", ""),
+                    "onset": p.get("onset"),
+                    "expires": p.get("expires"),
+                })
+        except Exception:
+            pass
