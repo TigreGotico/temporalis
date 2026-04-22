@@ -50,6 +50,12 @@ class IPMA(WeatherProvider):
         super().__init__(lat, lon, date, units, lang)
         self._request()
 
+    @staticmethod
+    def from_address(address, **kwargs):
+        from temporalis.location import geolocate
+        lat, lon = geolocate(address)
+        return IPMA(lat, lon, **kwargs)
+
     def _request_current(self):
         stations_url = f"{_BASE}/observation/meteorology/stations/stations.json"
         obs_url = f"{_BASE}/observation/meteorology/stations/observations.json"

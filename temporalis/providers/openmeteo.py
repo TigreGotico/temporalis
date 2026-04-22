@@ -45,6 +45,12 @@ class OpenMeteo(WeatherProvider):
         super().__init__(lat, lon, date, units, lang)
         self._request()
 
+    @staticmethod
+    def from_address(address, **kwargs):
+        from temporalis.location import geolocate
+        lat, lon = geolocate(address)
+        return OpenMeteo(lat, lon, **kwargs)
+
     def _unit_params(self):
         if self._units in ("us", "imperial"):
             return {"temperature_unit": "fahrenheit",

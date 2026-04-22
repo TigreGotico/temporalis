@@ -47,6 +47,12 @@ class MetNo(WeatherProvider):
         super().__init__(lat, lon, date, units, lang)
         self._request()
 
+    @staticmethod
+    def from_address(address, **kwargs):
+        from temporalis.location import geolocate
+        lat, lon = geolocate(address)
+        return MetNo(lat, lon, **kwargs)
+
     def _temp_unit(self):
         return "ºF" if self._units in ("us", "imperial") else "ºC"
 
