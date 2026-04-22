@@ -1,36 +1,43 @@
-# Temporalis
+# temporalis
 
-Unified weather abstraction library for Python. Provides a single consistent
-interface over six weather services (including a historical archive), plus sun
-and moon data calculated locally via astral.
+Unified Python weather API that wraps multiple providers behind one consistent interface.
 
 ## Overview
 
-Each provider subclasses `WeatherProvider`, fetches data from its upstream
-API on construction, and normalises the result into the shared data model
-(`WeatherData`, `DataPoint`, `HourlyForecast`, `DailyForecast`). Sun and
-moon properties are computed from coordinates and date — they are independent
-of the upstream API.
+temporalis lets you query OpenWeatherMap, Open-Meteo, Met.no, IPMA, and NOAA NWS through
+the same objects: `WeatherData`, `DataPoint`, `HourlyForecast`, `DailyForecast`. Swap the
+provider class and nothing else in your code needs to change.
+
+Fields missing from a provider's response are filled automatically by meteorological
+approximations (dew point, apparent temperature, snow, UV index). Sun and moon data are
+computed from coordinates on every provider with no extra API call.
+
+All built-in providers are accessed by name via the provider registry; no provider-specific
+imports are needed at runtime.
 
 ## Key Classes
 
 | Class | Purpose | Source |
 |---|---|---|
-| `WeatherProvider` | Base class: caching, geocoding, sun/moon, forecast accessors | `temporalis/providers/__init__.py:13` |
-| `OWM` | OpenWeatherMap provider (global, API key) | `temporalis/providers/owm.py:6` |
-| `OpenMeteo` | Open-Meteo provider (global, no key) | `temporalis/providers/openmeteo.py:42` |
-| `MetNo` | Met.no provider (global, no key, User-Agent required) | `temporalis/providers/metno.py:43` |
-| `IPMA` | IPMA provider (Portugal only, no key) | `temporalis/providers/ipma.py:42` |
-| `NWS` | NWS/Weather.gov provider (USA only, no key) | `temporalis/providers/nws.py:40` |
-| `OpenMeteoHistorical` | Open-Meteo historical archive (global, no key, date range) | `temporalis/providers/openmeteo_historical.py:24` |
-| `WeatherData` | Timestamped weather observation or forecast slot | `temporalis/__init__.py:80` |
-| `DataPoint` | Single measured quantity with value, units, min/max, probability | `temporalis/__init__.py:6` |
-| `HourlyForecast` | Collection of `WeatherData` objects indexed by hour | `temporalis/__init__.py:179` |
-| `DailyForecast` | Collection of `WeatherData` objects indexed by day | `temporalis/__init__.py:212` |
+| `WeatherProvider` | Base class; shared session, geocoding, sun/moon, forecast accessors | `temporalis/providers/__init__.py:14` |
+| `WeatherData` | Timestamped snapshot of all weather fields | `temporalis/__init__.py:87` |
+| `DataPoint` | Single measurement with value, units, min/max, probability | `temporalis/__init__.py:9` |
+| `HourlyForecast` | Ordered collection of hourly `WeatherData` | `temporalis/__init__.py:186` |
+| `DailyForecast` | Ordered collection of daily `WeatherData` | `temporalis/__init__.py:219` |
+| `MinutelyForecast` | Per-minute precipitation for the next ~60 minutes | `temporalis/__init__.py:277` |
+| `OWM` | OpenWeatherMap provider | `temporalis/providers/owm.py:17` |
+| `OpenMeteo` | Open-Meteo forecast + historical archive provider | `temporalis/providers/openmeteo.py:59` |
+| `MetNo` | Norwegian Met Institute provider | `temporalis/providers/metno.py:43` |
+| `NWS` | NOAA National Weather Service (USA only) | `temporalis/providers/nws.py:48` |
+| `IPMA` | Portuguese Met Authority (Portugal only) | `temporalis/providers/ipma.py:45` |
+| `OpenMeteoAirQuality` | Open-Meteo air quality API | `temporalis/providers/openmeteo_airquality.py:66` |
 
 ## Contents
 
-- [Installation and Quick Start](../readme.md)
-- [Data Model Reference](data-model.md)
-- [Provider API Reference](api-reference.md)
-- [Adding a New Provider](providers.md)
+- [Installation and quick start](../readme.md)
+- [Data model](data-model.md) — WeatherProvider, WeatherData, DataPoint, forecast collections
+- [Providers](providers.md) — coverage, constructor args, quirks, and unit handling per provider
+- [Derived fields](derived-fields.md) — automatic field estimation: dew point, apparent temperature, snow, UV index
+- [Units](units.md) — unit system design and per-provider native units
+- [Examples](examples.md) — common usage patterns with code
+- [Adding a custom provider](api-reference.md)
