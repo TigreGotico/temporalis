@@ -97,7 +97,7 @@ def _avg_dp(field: str, snapshots: list[WeatherData]) -> Optional[DataPoint]:
                 values.append(float(dp.value))
                 if units is None:
                     units = dp.units
-                    label = dp.label if hasattr(dp, "label") else field
+                    label = dp.name if hasattr(dp, "name") else field
             except (TypeError, ValueError):
                 pass
     if not values:

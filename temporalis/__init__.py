@@ -175,8 +175,7 @@ class WeatherData:
             point.datetime = dt
 
         point.temperature = DataPoint.from_dict(data.get("temperature"))
-        point.apparentTemperature = DataPoint.from_dict(
-            data.get("apparentTemperature")) or point.temperature
+        point.apparentTemperature = DataPoint.from_dict(data.get("apparentTemperature"))
 
         point.cloudCover = DataPoint.from_dict(data.get("cloudCover"))
         point.dewPoint = DataPoint.from_dict(data.get("dewPoint"))

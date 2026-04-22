@@ -12,9 +12,9 @@ import requests
 
 
 class WeatherProvider:
-    session = requests.Session()
 
     def __init__(self, lat, lon, date=None, units="metric", lang="en"):
+        self.session = requests.Session()
         self.lang = lang
         self.datetime = date or now_utc()
         self._alerts = []

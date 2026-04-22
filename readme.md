@@ -1,7 +1,8 @@
 # [Temporalis](https://en.wiktionary.org/wiki/temporalis#Adjective)
 
-Unified weather abstraction library for Python. Query five different weather
-services through one consistent API, with built-in sun and moon data.
+Unified weather abstraction library for Python. Query multiple weather
+services through one consistent API, with automatic field derivation, marine
+forecasts, and an ensemble mode that merges all free sources in parallel.
 
 ## Why another weather library?
 
@@ -9,9 +10,9 @@ Most Python weather packages are thin wrappers around a single API. Switch
 providers and you rewrite your whole application. Temporalis solves a different
 problem: **make the provider an implementation detail**.
 
-Every provider — whether it's a global commercial service, a national government
-API, or a free open-data feed — returns the same objects: `WeatherData`,
-`DataPoint`, `HourlyForecast`, `DailyForecast`. Your code never touches raw JSON.
+Every provider — whether it's a global model, a national government API, or a
+free open-data feed — returns the same objects: `WeatherData`, `DataPoint`,
+`HourlyForecast`, `DailyForecast`. Your code never touches raw JSON.
 
 ### The data model earns its keep
 
@@ -27,28 +28,27 @@ print(temp.value, temp.units)       # 18.5 ºC
 print(temp.min_val, temp.max_val)   # daily range, if the provider supplies it
 ```
 
+**Missing fields are filled automatically.** When a provider doesn't return
+dew point, apparent temperature, snow, or UV index, Temporalis derives them
+from whatever data is available using standard meteorological formulas:
+
+```python
+wx = MetNo(lat, lon)
+print(wx.weather.dewPoint)          # derived via August-Roche-Magnus
+print(wx.weather.uvIndex)           # derived from solar position + cloud cover
+print(wx.weather.snow)              # derived when T ≤ 2°C and precipitation > 0
+```
+
 **Sun and moon are first-class, not bolted on.** Every provider exposes `dawn`,
 `dusk`, `sunrise`, `sunset`, `noon`, `moon_phase`, and `moon_phase_name` with no
-extra API call and no extra key — computed from coordinates via `astral`. Moon
-phase names are available in eight languages.
+extra API call — computed from coordinates via `astral`.
 
 **Swap providers without changing your code:**
 
 ```python
-# works identically for OWM, OpenMeteo, MetNo, IPMA, NWS
+# works identically for OWM, OpenMeteo, MetNo, IPMA, NWS, Ensemble
 for day in wx.days:
     print(day.weekday, day.temperature, day.precipitation)
-```
-
-**Select by name at runtime**, not by import path:
-
-```python
-import temporalis.providers.registry   # registers all built-ins
-from temporalis.providers import WeatherProvider
-
-wx = WeatherProvider.get("metno", lat, lon)
-print(WeatherProvider.available())
-# ['ipma', 'metno', 'nws', 'openmeteo', 'openmeteo_historical', 'owm']
 ```
 
 ## Install
@@ -61,19 +61,18 @@ pip install temporalis
 
 | Provider | Coverage | API key | Notes |
 |---|---|---|---|
-| `OWM` | Global | Required (default bundled) | OpenWeatherMap |
-| `OpenMeteo` | Global | None | Open-Meteo forecast |
-| `OpenMeteoHistorical` | Global | None | Open-Meteo archive; date range required |
+| `Ensemble` | Global | None (OWM optional) | Merges all applicable sources in parallel |
+| `OpenMeteo` | Global | None | Forecast + historical archive |
 | `MetNo` | Global | None | Norwegian Met Institute |
-| `IPMA` | Portugal only | None | Raises `ValueError` outside PT |
+| `OWM` | Global | Required | OpenWeatherMap; default key bundled |
 | `NWS` | USA only | None | Raises `ValueError` outside US |
-
-All providers can be instantiated by name through the registry — see
-[Provider Registry](docs/api-reference.md#provider-registry) for details.
+| `IPMA` | Portugal only | None | Raises `ValueError` outside PT |
+| `OpenMeteoMarine` | Ocean | None | Wave, swell, current; raises `ValueError` for landlocked coords |
+| `OpenMeteoAirQuality` | Global | None | PM2.5, ozone, pollen, NO₂ |
 
 ## Quick Start
 
-All providers share the same interface. Swap the class to change the source.
+### Single provider
 
 ```python
 from temporalis.providers.openmeteo import OpenMeteo
@@ -81,116 +80,120 @@ from temporalis.providers.openmeteo import OpenMeteo
 lat, lon = 38.7223, -9.1393   # Lisbon
 wx = OpenMeteo(lat, lon)
 
-# Current conditions
 print(wx.weather.summary)
-print(wx.weather.temperature)   # DataPoint: value + units
+print(wx.weather.temperature)        # DataPoint: value + units
+print(wx.weather.dewPoint)           # derived if provider doesn't supply it
 
-# Daily and hourly forecasts
 for day in wx.days:
-    print(day.weekday, day.datetime.date(), day.summary)
+    print(day.weekday, day.datetime.date(), day.temperature)
 
 for hour in wx.hours:
-    print(hour.datetime.time(), hour.temperature)
+    print(hour.datetime.time(), hour.temperature, hour.precipitation)
 
 # Sun times (astral, timezone-aware)
 print(wx.dawn, wx.sunrise, wx.noon, wx.sunset, wx.dusk)
 
 # Moon
-print(wx.moon_symbol, wx.moon_phase_name)   # e.g. "🌔 Waxing gibbous"
+print(wx.moon_symbol, wx.moon_phase_name)
 ```
 
-### Geocode from address
-
-All providers support `from_address()`:
+### Ensemble — best data from all free sources
 
 ```python
-wx = OpenMeteo.from_address("Berlin, Germany")
-wx = MetNo.from_address("Oslo, Norway")
-wx = IPMA.from_address("Lisbon, Portugal")
-wx = NWS.from_address("New York, USA")
+from temporalis.providers.ensemble import Ensemble
+
+wx = Ensemble(lat, lon, units="metric")
+
+print(wx.providers)          # ['openmeteo', 'metno', 'ipma', 'openmeteo_marine', ...]
+
+w = wx.weather
+print(w.temperature)         # mean across all providers
+# min_val / max_val reflect inter-provider spread — wide = low confidence
+print(w.temperature.min_val, w.temperature.max_val)
+
+print(w.waveHeight)          # from OpenMeteoMarine when coastal
 ```
 
-### OpenWeatherMap (API key)
+### Historical data
 
 ```python
-from temporalis.providers.owm import OWM
+from temporalis.providers.openmeteo import OpenMeteo
+import pendulum
 
-wx = OWM(lat, lon)             # uses bundled default key
-wx = OWM(lat, lon, key="...")  # supply your own
-```
-
-### Portugal — IPMA
-
-```python
-from temporalis.providers.ipma import IPMA
-
-wx = IPMA(38.7223, -9.1393)
-# raises ValueError if coordinates are outside Portugal's bounding box
-```
-
-### USA — NWS / Weather.gov
-
-```python
-from temporalis.providers.nws import NWS
-
-wx = NWS(40.7128, -74.0060)   # New York
-# raises ValueError if coordinates are outside the USA
-```
-
-### Met.no
-
-```python
-from temporalis.providers.metno import MetNo
-
-wx = MetNo(lat, lon)
-```
-
-### Historical data — Open-Meteo archive
-
-```python
-from temporalis.providers.openmeteo_historical import OpenMeteoHistorical
-
-# Single day (default: yesterday)
-wx = OpenMeteoHistorical(lat, lon)
-
-# Explicit date range
-wx = OpenMeteoHistorical(lat, lon, start="2024-01-01", end="2024-01-31")
+wx = OpenMeteo(lat, lon,
+               start=pendulum.date(2024, 1, 1),
+               end=pendulum.date(2024, 1, 31))
 for day in wx.days:
     print(day.datetime.date(), day.temperature)
+```
+
+### Marine forecast
+
+```python
+from temporalis.providers.openmeteo_marine import OpenMeteoMarine
+
+wx = OpenMeteoMarine(38.7, -9.5)   # must be over ocean
+w = wx.weather
+print(w.waveHeight, w.swellHeight, w.wavePeriod)
+print(w.currentVelocity, w.currentDirection)
 ```
 
 ### Provider registry
 
 ```python
-from temporalis.providers.registry import *   # auto-registers all built-ins
+import temporalis.providers.registry   # auto-registers all built-ins
 from temporalis.providers import WeatherProvider
 
-# List available names
 print(WeatherProvider.available())
-# ['ipma', 'metno', 'nws', 'openmeteo', 'openmeteo_historical', 'owm']
+# ['ensemble', 'ipma', 'metno', 'nws', 'openmeteo', 'openmeteo_airquality',
+#  'openmeteo_marine', 'owm']
 
-# Instantiate by name
-wx = WeatherProvider.get("metno", 38.72, -9.14)
-
-# Geocode by name
+wx = WeatherProvider.get("metno", lat, lon)
 wx = WeatherProvider.from_address("Paris, France", name="openmeteo")
+```
 
-# Register a custom provider
-WeatherProvider.register("myprovider", MyProvider)
+### Geocode from address
+
+```python
+wx = OpenMeteo.from_address("Berlin, Germany")
+wx = Ensemble.from_address("Oslo, Norway")
 ```
 
 ## Units
 
-Pass `units="metric"` (default) or `units="us"` / `units="imperial"` to any
-provider constructor. Met.no always returns SI from the API; unit conversion is
-applied locally.
+Pass `units="metric"` (default) or `units="us"` to any provider constructor.
+Each provider converts locally — API-native units are never exposed raw.
 
-## Configuration
+```python
+wx_us = OpenMeteo(lat, lon, units="us")
+print(wx_us.weather.temperature)   # ºF
+print(wx_us.weather.windSpeed)     # mph
+```
 
-A plain `requests.Session` is shared across all provider instances
-(`WeatherProvider.session` — `temporalis/providers/__init__.py`).
-You can wrap it with your own caching layer (e.g. `requests-cache`) by
-replacing `WeatherProvider.session` before instantiating any provider.
+## Caching
+
+Each provider instance owns its own `requests.Session`. To add caching, wrap
+the session after construction:
+
+```python
+import requests_cache
+wx = OpenMeteo(lat, lon)
+wx.session = requests_cache.CachedSession("weather_cache", expire_after=600)
+```
+
+## Derived fields
+
+Fields filled automatically when the provider doesn't supply them:
+
+| Field | Formula | Inputs |
+|---|---|---|
+| `dewPoint` | August-Roche-Magnus | temp + humidity |
+| `apparentTemperature` | Wind chill (T<10°C) or heat index (T>27°C) | temp + wind or humidity |
+| `snow` | precipitation when T ≤ 2°C | temp + precipitation |
+| `uvIndex` | NOAA solar position + Josefsson cloud attenuation | lat/lon + datetime + cloud cover |
+
+See [docs/derived-fields.md](docs/derived-fields.md) for formulas, validity
+ranges, and accuracy limits.
 
 ## License
 
