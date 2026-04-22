@@ -2,19 +2,17 @@ from __future__ import annotations
 from typing import Optional, List, Dict, Any, Type
 from temporalis.location import geolocate, get_timezone
 from temporalis.sun import get_dawn, get_dusk, get_sunrise, get_sunset, get_noon
-from temporalis import WeatherData, DailyForecast, HourlyForecast
+from temporalis import WeatherData, DailyForecast, HourlyForecast, MinutelyForecast
 from temporalis.time import now_utc
 from temporalis.moon import get_moon_phase, moon_code_to_symbol, \
     moon_code_to_name
 from pendulum import timezone
 import pendulum
-from requests_cache import CachedSession
-from datetime import timedelta
+import requests
 
 
 class WeatherProvider:
-    expire_after = timedelta(hours=1)
-    session = CachedSession(backend='memory', expire_after=expire_after)
+    session = requests.Session()
 
     def __init__(self, lat, lon, date=None, units="metric", lang="en"):
         self.lang = lang
@@ -182,6 +180,15 @@ class WeatherProvider:
     @property
     def hours(self):
         return self.hourly.hours
+
+    @property
+    def minutely(self) -> MinutelyForecast:
+        """Per-minute precipitation for the next ~60 minutes.
+
+        Returns an empty MinutelyForecast when the provider does not support
+        minutely data or the subscription tier does not include it.
+        """
+        return MinutelyForecast([])
 
     @property
     def daily(self):

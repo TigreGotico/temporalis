@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Optional, Any
+from typing import Optional, Any, List
 from temporalis.time import int_to_weekday
 import pendulum
 from pprint import pprint
@@ -245,3 +245,50 @@ class DailyForecast:
         return {"datetime": self.datetime,
                 "days": [m.as_dict() for m in self.days],
                 "weather": self.weather.as_dict()}
+
+
+class MinutelyData:
+    """One-minute precipitation snapshot."""
+
+    def __init__(self, dt: Any,
+                 precipitation: Optional[DataPoint] = None,
+                 precipitation_probability: Optional[DataPoint] = None):
+        self.datetime = dt
+        self.precipitation = precipitation                    # mm/h intensity
+        self.precipitation_probability = precipitation_probability  # 0–1
+
+    def __repr__(self) -> str:
+        return f"MinutelyData({self.datetime}, precip={self.precipitation})"
+
+    def as_dict(self) -> dict:
+        data = dict(self.__dict__)
+        for k in list(data):
+            try:
+                data[k] = data[k].as_dict()
+            except Exception:
+                pass
+            if not data[k] and data[k] != 0:
+                data.pop(k)
+        return data
+
+
+class MinutelyForecast:
+    """Ordered collection of per-minute readings for the next ~60 minutes."""
+
+    def __init__(self, minutes: List[MinutelyData]):
+        self.minutes = minutes
+
+    def __len__(self) -> int:
+        return len(self.minutes)
+
+    def __getitem__(self, item):
+        return self.minutes[item]
+
+    def __iter__(self):
+        return iter(self.minutes)
+
+    def __repr__(self) -> str:
+        return f"MinutelyForecast({len(self.minutes)} minutes)"
+
+    def as_dict(self) -> dict:
+        return {"minutes": [m.as_dict() for m in self.minutes]}

@@ -1,6 +1,6 @@
 from temporalis.location import geolocate
 from temporalis.providers import WeatherProvider
-from temporalis import WeatherData, DataPoint
+from temporalis import WeatherData, DataPoint, MinutelyData, MinutelyForecast
 
 
 class OWM(WeatherProvider):
@@ -14,6 +14,7 @@ class OWM(WeatherProvider):
             units = "si"
         super().__init__(lat, lon, date, units)
         self.key = key or self.default_key
+        self._minutely: list = []
         self._request()
 
     @staticmethod
@@ -279,7 +280,41 @@ class OWM(WeatherProvider):
                               "icon": daily_icon,
                               "data": days}
 
+    def _request_minutely(self):
+        """One Call 3.0 — per-minute precipitation for the next 60 minutes.
+
+        Requires a paid One Call 3.0 subscription key. Falls back silently
+        when the endpoint returns a 401/402 or when minutely data is absent
+        (e.g. the location has no radar coverage).
+        """
+        url = (
+            "https://api.openweathermap.org/data/3.0/onecall"
+            f"?lat={self.latitude}&lon={self.longitude}"
+            f"&appid={self.key}&exclude=current,hourly,daily,alerts"
+        )
+        try:
+            resp = self.session.get(url)
+            if not resp.ok:
+                return
+            raw = resp.json()
+        except Exception:
+            return
+
+        for entry in raw.get("minutely", []):
+            ts = entry.get("dt")
+            if ts is None:
+                continue
+            dt = self._stamp_to_datetime(ts)
+            precip_val = entry.get("precipitation")
+            precip = DataPoint("Precipitation", precip_val, "mm/h") if precip_val is not None else None
+            self._minutely.append(MinutelyData(dt, precipitation=precip))
+
+    @property
+    def minutely(self) -> MinutelyForecast:
+        return MinutelyForecast(self._minutely)
+
     def _request(self):
         self._request_current()
         self._request_forecast()
+        self._request_minutely()
 

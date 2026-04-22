@@ -28,12 +28,20 @@ OWM_FORECAST = {
 }
 
 
+_ONECALL_URL = "https://api.openweathermap.org/data/3.0/onecall"
+
+
+def _add_stubs(rsps, *, onecall_status=401):
+    rsps.add(rsps.GET, "https://api.openweathermap.org/data/2.5/weather",
+             json=OWM_CURRENT)
+    rsps.add(rsps.GET, "https://api.openweathermap.org/data/2.5/forecast",
+             json=OWM_FORECAST)
+    rsps.add(rsps.GET, _ONECALL_URL, status=onecall_status)
+
+
 @resp.activate
 def test_owm_weather_returns_weatherdata():
-    resp.add(resp.GET, "https://api.openweathermap.org/data/2.5/weather",
-             json=OWM_CURRENT)
-    resp.add(resp.GET, "https://api.openweathermap.org/data/2.5/forecast",
-             json=OWM_FORECAST)
+    _add_stubs(resp)
     p = OWM(38.72, -9.14, key="testkey")
     assert isinstance(p.weather, WeatherData)
     assert p.weather.temperature is not None
@@ -42,25 +50,18 @@ def test_owm_weather_returns_weatherdata():
 
 @resp.activate
 def test_owm_days_and_hours():
-    resp.add(resp.GET, "https://api.openweathermap.org/data/2.5/weather",
-             json=OWM_CURRENT)
-    resp.add(resp.GET, "https://api.openweathermap.org/data/2.5/forecast",
-             json=OWM_FORECAST)
+    _add_stubs(resp)
     p = OWM(38.72, -9.14, key="testkey")
     assert len(p.hours) > 0
     assert len(p.days) > 0
 
 
 def test_owm_requires_no_key_with_default():
-    # default key is present; ensure it doesn't raise
     import responses as resp2
 
     @resp2.activate
     def _run():
-        resp2.add(resp2.GET, "https://api.openweathermap.org/data/2.5/weather",
-                  json=OWM_CURRENT)
-        resp2.add(resp2.GET, "https://api.openweathermap.org/data/2.5/forecast",
-                  json=OWM_FORECAST)
+        _add_stubs(resp2)
         p = OWM(38.72, -9.14)
         assert p.key == OWM.default_key
 

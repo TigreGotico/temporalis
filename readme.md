@@ -187,9 +187,10 @@ applied locally.
 
 ## Configuration
 
-Responses are cached in memory for 1 hour via `requests-cache`. The cache is a
-class-level `CachedSession` shared across all provider instances
-(`WeatherProvider.session` — `temporalis/providers/__init__.py:15`).
+A plain `requests.Session` is shared across all provider instances
+(`WeatherProvider.session` — `temporalis/providers/__init__.py`).
+You can wrap it with your own caching layer (e.g. `requests-cache`) by
+replacing `WeatherProvider.session` before instantiating any provider.
 
 ## License
 

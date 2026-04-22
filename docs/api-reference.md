@@ -27,13 +27,19 @@ OpenMeteo and MetNo apply conversion locally.
 
 ---
 
-## Class-level Cache
+## Shared Session
 
-`WeatherProvider.session` — `temporalis/providers/__init__.py:15`
+`WeatherProvider.session` — `temporalis/providers/__init__.py`
 
-A `requests_cache.CachedSession` with a 1-hour in-memory TTL, shared across
-all provider instances. Providers call `self.session.get(url)` to benefit
-from caching automatically.
+A plain `requests.Session` shared across all provider instances. Providers
+call `self.session.get(url)`. To add caching, replace the session before
+instantiating any provider:
+
+```python
+import requests_cache
+from temporalis.providers import WeatherProvider
+WeatherProvider.session = requests_cache.CachedSession(backend="memory", expire_after=3600)
+```
 
 ---
 
