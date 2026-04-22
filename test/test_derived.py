@@ -2,9 +2,11 @@
 import math
 import pytest
 from temporalis import DataPoint
+import pendulum
 from temporalis.derived import (
     _to_celsius, _to_kmh, _from_celsius,
-    approx_dew_point, approx_apparent_temp, fill_derived,
+    approx_dew_point, approx_apparent_temp, approx_snow, approx_uv_index,
+    fill_derived,
 )
 from temporalis import WeatherData
 
@@ -248,3 +250,126 @@ def test_fill_derived_no_inputs_no_crash():
     result = fill_derived(wd)
     assert result.dewPoint is None
     assert result.apparentTemperature is None
+
+
+# ── snow ──────────────────────────────────────────────────────────────────────
+
+def test_snow_below_threshold():
+    temp = _dp(0.0, "°C")
+    precip = _dp(3.0, "mm")
+    result = approx_snow(temp, precip)
+    assert result is not None
+    assert result.value == 3.0
+    assert result.units == "mm"
+
+
+def test_snow_at_threshold():
+    # Exactly 2°C is still snow
+    temp = _dp(2.0, "°C")
+    precip = _dp(1.5, "mm")
+    assert approx_snow(temp, precip) is not None
+
+
+def test_snow_above_threshold():
+    # Above 2°C → rain, not snow
+    temp = _dp(5.0, "°C")
+    precip = _dp(3.0, "mm")
+    assert approx_snow(temp, precip) is None
+
+
+def test_snow_fahrenheit_below_threshold():
+    # 30°F = −1.1°C → snow
+    temp = _dp(30.0, "°F")
+    precip = _dp(0.1, "inch")
+    result = approx_snow(temp, precip)
+    assert result is not None
+    assert result.units == "inch"
+
+
+def test_snow_no_precip():
+    assert approx_snow(_dp(0.0, "°C"), None) is None
+
+
+def test_snow_no_precip_value():
+    assert approx_snow(_dp(0.0, "°C"), _dp(None, "mm")) is None
+
+
+def test_fill_derived_adds_snow():
+    wd = _make_wd(
+        temperature=_dp(-3.0, "°C"),
+        precipitation=_dp(2.0, "mm"),
+    )
+    fill_derived(wd)
+    assert wd.snow is not None
+    assert wd.snow.value == 2.0
+
+
+def test_fill_derived_no_snow_warm():
+    wd = _make_wd(
+        temperature=_dp(15.0, "°C"),
+        precipitation=_dp(5.0, "mm"),
+    )
+    fill_derived(wd)
+    assert wd.snow is None
+
+
+# ── UV index ─────────────────────────────────────────────────────────────────
+
+# Solar noon at the equator on the vernal equinox: SZA ≈ 0° → UV ≈ 12
+_EQUATOR_LAT = 0.0
+_EQUATOR_LON = 0.0
+_VERNAL_EQUINOX_NOON_UTC = pendulum.datetime(2024, 3, 20, 12, 0, 0, tz="UTC")
+
+# Midnight anywhere → sun below horizon → UV = 0
+_MIDNIGHT_UTC = pendulum.datetime(2024, 6, 21, 0, 0, 0, tz="UTC")
+
+
+def test_uv_near_zero_at_solar_noon_equinox():
+    result = approx_uv_index(_EQUATOR_LAT, _EQUATOR_LON, _VERNAL_EQUINOX_NOON_UTC)
+    assert result is not None
+    assert result.value > 8.0  # clear-sky near-equatorial noon is high UV
+
+
+def test_uv_zero_at_night():
+    # Sun below horizon at midnight → returns UV 0
+    result = approx_uv_index(51.5, -0.1, _MIDNIGHT_UTC)  # London
+    assert result is not None
+    assert result.value == 0.0
+
+
+def test_uv_reduced_by_cloud_cover():
+    # Full cloud cover should significantly reduce UV
+    clear = approx_uv_index(_EQUATOR_LAT, _EQUATOR_LON, _VERNAL_EQUINOX_NOON_UTC)
+    cloudy = approx_uv_index(_EQUATOR_LAT, _EQUATOR_LON, _VERNAL_EQUINOX_NOON_UTC,
+                             cloud_cover_dp=_dp(100.0, "%"))
+    assert cloudy.value < clear.value * 0.5
+
+
+def test_uv_no_clouds_is_clear_sky():
+    # 0% cloud cover should give same as no cloud arg
+    no_arg = approx_uv_index(_EQUATOR_LAT, _EQUATOR_LON, _VERNAL_EQUINOX_NOON_UTC)
+    zero_cloud = approx_uv_index(_EQUATOR_LAT, _EQUATOR_LON, _VERNAL_EQUINOX_NOON_UTC,
+                                 cloud_cover_dp=_dp(0.0, "%"))
+    assert abs(no_arg.value - zero_cloud.value) < 0.1
+
+
+def test_fill_derived_adds_uv_with_latlon():
+    wd = _make_wd(datetime=_VERNAL_EQUINOX_NOON_UTC)
+    fill_derived(wd, lat=_EQUATOR_LAT, lon=_EQUATOR_LON)
+    assert wd.uvIndex is not None
+    assert wd.uvIndex.value > 0.0
+
+
+def test_fill_derived_no_uv_without_latlon():
+    wd = _make_wd(datetime=_VERNAL_EQUINOX_NOON_UTC)
+    fill_derived(wd)  # no lat/lon
+    assert wd.uvIndex is None
+
+
+def test_fill_derived_uv_uses_cloud_cover():
+    cloud = _dp(80.0, "%")
+    wd_clear = _make_wd(datetime=_VERNAL_EQUINOX_NOON_UTC)
+    wd_cloudy = _make_wd(datetime=_VERNAL_EQUINOX_NOON_UTC, cloudCover=cloud)
+    fill_derived(wd_clear, lat=_EQUATOR_LAT, lon=_EQUATOR_LON)
+    fill_derived(wd_cloudy, lat=_EQUATOR_LAT, lon=_EQUATOR_LON)
+    assert wd_cloudy.uvIndex.value < wd_clear.uvIndex.value

@@ -148,7 +148,8 @@ class WeatherProvider:
     @property
     def weather(self):
         from temporalis.derived import fill_derived
-        return fill_derived(WeatherData().from_dict(self.data["currently"]))
+        return fill_derived(WeatherData().from_dict(self.data["currently"]),
+                            lat=self.latitude, lon=self.longitude)
 
     @property
     def weather_tomorrow(self):
@@ -175,7 +176,7 @@ class WeatherProvider:
                 weather = WeatherData().from_dict(hour)
             else:
                 weather = hour
-            hours.append(fill_derived(weather))
+            hours.append(fill_derived(weather, lat=self.latitude, lon=self.longitude))
 
         return HourlyForecast(self.datetime, hours, hourly_weather)
 
@@ -205,7 +206,8 @@ class WeatherProvider:
             daily_weather.summary = daily["data"][0].summary
         daily_weather.datetime = self.datetime
         from temporalis.derived import fill_derived
-        days = [fill_derived(d) if not isinstance(d, dict) else fill_derived(WeatherData().from_dict(d))
+        days = [fill_derived(d if not isinstance(d, dict) else WeatherData().from_dict(d),
+                             lat=self.latitude, lon=self.longitude)
                 for d in daily["data"]]
         return DailyForecast(self.datetime, days, daily_weather)
 
