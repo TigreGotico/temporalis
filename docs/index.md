@@ -1,8 +1,8 @@
 # Temporalis
 
 Unified weather abstraction library for Python. Provides a single consistent
-interface over five weather services, plus sun and moon data calculated
-locally via astral.
+interface over six weather services (including a historical archive), plus sun
+and moon data calculated locally via astral.
 
 ## Overview
 
@@ -22,6 +22,7 @@ of the upstream API.
 | `MetNo` | Met.no provider (global, no key, User-Agent required) | `temporalis/providers/metno.py:43` |
 | `IPMA` | IPMA provider (Portugal only, no key) | `temporalis/providers/ipma.py:42` |
 | `NWS` | NWS/Weather.gov provider (USA only, no key) | `temporalis/providers/nws.py:40` |
+| `OpenMeteoHistorical` | Open-Meteo historical archive (global, no key, date range) | `temporalis/providers/openmeteo_historical.py:24` |
 | `WeatherData` | Timestamped weather observation or forecast slot | `temporalis/__init__.py:80` |
 | `DataPoint` | Single measured quantity with value, units, min/max, probability | `temporalis/__init__.py:6` |
 | `HourlyForecast` | Collection of `WeatherData` objects indexed by hour | `temporalis/__init__.py:179` |

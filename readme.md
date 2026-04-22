@@ -14,10 +14,14 @@ pip install temporalis
 | Provider | Coverage | API key | Notes |
 |---|---|---|---|
 | `OWM` | Global | Required (default bundled) | OpenWeatherMap |
-| `OpenMeteo` | Global | None | Open-Meteo |
+| `OpenMeteo` | Global | None | Open-Meteo forecast |
+| `OpenMeteoHistorical` | Global | None | Open-Meteo archive; date range required |
 | `MetNo` | Global | None | Norwegian Met Institute |
 | `IPMA` | Portugal only | None | Raises `ValueError` outside PT |
 | `NWS` | USA only | None | Raises `ValueError` outside US |
+
+All providers can be instantiated by name through the registry — see
+[Provider Registry](docs/api-reference.md#provider-registry) for details.
 
 ## Quick Start
 
@@ -49,8 +53,13 @@ print(wx.moon_symbol, wx.moon_phase_name)   # e.g. "🌔 Waxing gibbous"
 
 ### Geocode from address
 
+All providers support `from_address()`:
+
 ```python
 wx = OpenMeteo.from_address("Berlin, Germany")
+wx = MetNo.from_address("Oslo, Norway")
+wx = IPMA.from_address("Lisbon, Portugal")
+wx = NWS.from_address("New York, USA")
 ```
 
 ### OpenWeatherMap (API key)
@@ -86,6 +95,40 @@ wx = NWS(40.7128, -74.0060)   # New York
 from temporalis.providers.metno import MetNo
 
 wx = MetNo(lat, lon)
+```
+
+### Historical data — Open-Meteo archive
+
+```python
+from temporalis.providers.openmeteo_historical import OpenMeteoHistorical
+
+# Single day (default: yesterday)
+wx = OpenMeteoHistorical(lat, lon)
+
+# Explicit date range
+wx = OpenMeteoHistorical(lat, lon, start="2024-01-01", end="2024-01-31")
+for day in wx.days:
+    print(day.datetime.date(), day.temperature)
+```
+
+### Provider registry
+
+```python
+from temporalis.providers.registry import *   # auto-registers all built-ins
+from temporalis.providers import WeatherProvider
+
+# List available names
+print(WeatherProvider.available())
+# ['ipma', 'metno', 'nws', 'openmeteo', 'openmeteo_historical', 'owm']
+
+# Instantiate by name
+wx = WeatherProvider.get("metno", 38.72, -9.14)
+
+# Geocode by name
+wx = WeatherProvider.from_address("Paris, France", name="openmeteo")
+
+# Register a custom provider
+WeatherProvider.register("myprovider", MyProvider)
 ```
 
 ## Units
