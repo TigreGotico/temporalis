@@ -1,45 +1,50 @@
+from __future__ import annotations
+
+from typing import Optional, Any, List
 from temporalis.time import int_to_weekday
 import pendulum
 from pprint import pprint
 
 
 class DataPoint:
-    def __init__(self, name, value, units,
-                 min_val=None, max_val=None,
-                 low_val=None, high_val=None,
-                 time=None, min_time=None, max_time=None,
-                 low_time=None, high_time=None,
-                 prob=None, prob_min=None, prob_max=None):
+    def __init__(self, name: str, value: Optional[float], units: str,
+                 min_val: Optional[float] = None, max_val: Optional[float] = None,
+                 low_val: Optional[float] = None, high_val: Optional[float] = None,
+                 time: Optional[Any] = None, min_time: Optional[Any] = None,
+                 max_time: Optional[Any] = None,
+                 low_time: Optional[Any] = None, high_time: Optional[Any] = None,
+                 prob: Optional[float] = None, prob_min: Optional[float] = None,
+                 prob_max: Optional[float] = None):
         self.name = name
         self.units = units
         self.value = value
-        self.min_val = min_val or value
-        self.max_val = max_val or value
-        self.low_val = low_val or self.min_val
-        self.high_val = high_val or self.max_val
-        self.prob = prob  # probability of value
-        self.prob_min = prob_min or prob  # probability of min_value
-        self.prob_max = prob_max or prob  # probability of max_value
-        self.time = time  # ts of prediction
-        self.min_time = min_time or time  # predicted ts for min
-        self.max_time = max_time or time  # predicted ts for max
-        self.low_time = low_time or time
-        self.high_time = high_time or time
+        self.min_val = min_val if min_val is not None else value
+        self.max_val = max_val if max_val is not None else value
+        self.low_val = low_val if low_val is not None else self.min_val
+        self.high_val = high_val if high_val is not None else self.max_val
+        self.prob = prob
+        self.prob_min = prob_min if prob_min is not None else prob
+        self.prob_max = prob_max if prob_max is not None else prob
+        self.time = time
+        self.min_time = min_time if min_time is not None else time
+        self.max_time = max_time if max_time is not None else time
+        self.low_time = low_time if low_time is not None else time
+        self.high_time = high_time if high_time is not None else time
 
     @staticmethod
     def _stamp_to_datetime(stamp, tz=None):
         tz = tz or "UTC"
         return pendulum.from_timestamp(stamp, tz=tz)
 
-    def as_dict(self):
-        data = self.__dict__
-        for k in dict(data):
-            if not data[k]:
+    def as_dict(self) -> dict:
+        data = dict(self.__dict__)
+        for k in list(data):
+            if data[k] is None:
                 data.pop(k)
         return data
 
     @staticmethod
-    def from_dict(data):
+    def from_dict(data) -> Optional[DataPoint]:
         if not isinstance(data, int) and not data:
             return None
         if isinstance(data, DataPoint):
@@ -53,13 +58,13 @@ class DataPoint:
             dt = data["time"]
             try:
                 dt = DataPoint._stamp_to_datetime(data["time"], tz)
-            except:
+            except Exception:
                 pass
         if data.get("datetime"):
             dt = data["datetime"]
             try:
                 dt = DataPoint._stamp_to_datetime(data["datetime"], tz)
-            except:
+            except Exception:
                 pass
 
         time = min_time = max_time = dt
@@ -69,8 +74,10 @@ class DataPoint:
         max_val = data.get("max_val") or data.get("max_value") or max_val
         prob_min = data.get("min_prob") or data.get("prob_min") or prob_min
         prob_max = data.get("max_prob") or data.get("prob_max") or prob_max
-        return DataPoint(name, value, units, min_val, max_val, time,
-                         min_time, max_time, prob, prob_min, prob_max)
+        return DataPoint(name, value, units,
+                         min_val=min_val, max_val=max_val,
+                         time=time, min_time=min_time, max_time=max_time,
+                         prob=prob, prob_min=prob_min, prob_max=prob_max)
 
     def __repr__(self):
         return str(self.value) + " " + self.units
@@ -96,6 +103,18 @@ class WeatherData:
         self.windGust = None
         self.windSpeed = None
         self.snow = None
+        # marine fields
+        self.waveHeight = None
+        self.waveDirection = None
+        self.wavePeriod = None
+        self.windWaveHeight = None
+        self.windWaveDirection = None
+        self.windWavePeriod = None
+        self.swellHeight = None
+        self.swellDirection = None
+        self.swellPeriod = None
+        self.currentVelocity = None
+        self.currentDirection = None
 
     def __repr__(self):
         return str(self.datetime) + ":" + self.summary
@@ -125,14 +144,14 @@ class WeatherData:
             return -1
         return int_to_weekday(self.datetime.weekday())
 
-    def as_dict(self):
-        data = self.__dict__
-        for k in dict(data):
+    def as_dict(self) -> dict:
+        data = dict(self.__dict__)
+        for k in list(data):
             try:
                 data[k] = data[k].as_dict()
-            except:
+            except Exception:
                 pass
-            if not data[k]:
+            if data[k] is None:
                 data.pop(k)
         return data
 
@@ -141,7 +160,7 @@ class WeatherData:
         return pendulum.from_timestamp(stamp, tz=tz)
 
     @staticmethod
-    def from_dict(data):
+    def from_dict(data) -> WeatherData:
         assert isinstance(data, dict)
         point = WeatherData()
         point.icon = data.get("icon")
@@ -151,13 +170,12 @@ class WeatherData:
             dt = data["datetime"]
             try:
                 dt = point._stamp_to_datetime(data["datetime"])
-            except:
+            except Exception:
                 pass
             point.datetime = dt
 
         point.temperature = DataPoint.from_dict(data.get("temperature"))
-        point.apparentTemperature = DataPoint.from_dict(
-            data.get("apparentTemperature")) or point.temperature
+        point.apparentTemperature = DataPoint.from_dict(data.get("apparentTemperature"))
 
         point.cloudCover = DataPoint.from_dict(data.get("cloudCover"))
         point.dewPoint = DataPoint.from_dict(data.get("dewPoint"))
@@ -171,6 +189,17 @@ class WeatherData:
         point.windSpeed = DataPoint.from_dict(data.get("windSpeed"))
         point.precipitation = DataPoint.from_dict(data.get("precipitation"))
         point.snow = DataPoint.from_dict(data.get("snow"))
+        point.waveHeight = DataPoint.from_dict(data.get("waveHeight"))
+        point.waveDirection = DataPoint.from_dict(data.get("waveDirection"))
+        point.wavePeriod = DataPoint.from_dict(data.get("wavePeriod"))
+        point.windWaveHeight = DataPoint.from_dict(data.get("windWaveHeight"))
+        point.windWaveDirection = DataPoint.from_dict(data.get("windWaveDirection"))
+        point.windWavePeriod = DataPoint.from_dict(data.get("windWavePeriod"))
+        point.swellHeight = DataPoint.from_dict(data.get("swellHeight"))
+        point.swellDirection = DataPoint.from_dict(data.get("swellDirection"))
+        point.swellPeriod = DataPoint.from_dict(data.get("swellPeriod"))
+        point.currentVelocity = DataPoint.from_dict(data.get("currentVelocity"))
+        point.currentDirection = DataPoint.from_dict(data.get("currentDirection"))
 
         return point
 
@@ -240,3 +269,50 @@ class DailyForecast:
         return {"datetime": self.datetime,
                 "days": [m.as_dict() for m in self.days],
                 "weather": self.weather.as_dict()}
+
+
+class MinutelyData:
+    """One-minute precipitation snapshot."""
+
+    def __init__(self, dt: Any,
+                 precipitation: Optional[DataPoint] = None,
+                 precipitation_probability: Optional[DataPoint] = None):
+        self.datetime = dt
+        self.precipitation = precipitation                    # mm/h intensity
+        self.precipitation_probability = precipitation_probability  # 0–1
+
+    def __repr__(self) -> str:
+        return f"MinutelyData({self.datetime}, precip={self.precipitation})"
+
+    def as_dict(self) -> dict:
+        data = dict(self.__dict__)
+        for k in list(data):
+            try:
+                data[k] = data[k].as_dict()
+            except Exception:
+                pass
+            if not data[k] and data[k] != 0:
+                data.pop(k)
+        return data
+
+
+class MinutelyForecast:
+    """Ordered collection of per-minute readings for the next ~60 minutes."""
+
+    def __init__(self, minutes: List[MinutelyData]):
+        self.minutes = minutes
+
+    def __len__(self) -> int:
+        return len(self.minutes)
+
+    def __getitem__(self, item):
+        return self.minutes[item]
+
+    def __iter__(self):
+        return iter(self.minutes)
+
+    def __repr__(self) -> str:
+        return f"MinutelyForecast({len(self.minutes)} minutes)"
+
+    def as_dict(self) -> dict:
+        return {"minutes": [m.as_dict() for m in self.minutes]}

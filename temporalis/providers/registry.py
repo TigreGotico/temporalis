@@ -1,0 +1,19 @@
+"""Auto-register all built-in providers into WeatherProvider._registry."""
+from temporalis.providers import WeatherProvider
+from temporalis.providers.owm import OWM
+from temporalis.providers.ipma import IPMA
+from temporalis.providers.openmeteo import OpenMeteo
+from temporalis.providers.metno import MetNo
+from temporalis.providers.nws import NWS
+from temporalis.providers.openmeteo_airquality import OpenMeteoAirQuality
+from temporalis.providers.openmeteo_marine import OpenMeteoMarine
+from temporalis.providers.ensemble import Ensemble
+
+WeatherProvider.register("owm", OWM)
+WeatherProvider.register("ipma", IPMA)
+WeatherProvider.register("openmeteo", OpenMeteo)
+WeatherProvider.register("metno", MetNo)
+WeatherProvider.register("nws", NWS)
+WeatherProvider.register("openmeteo_airquality", OpenMeteoAirQuality)
+WeatherProvider.register("openmeteo_marine", OpenMeteoMarine)
+WeatherProvider.register("ensemble", Ensemble)

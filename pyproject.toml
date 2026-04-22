@@ -1,0 +1,35 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "temporalis"
+version = "0.5.0"
+description = "Unified weather service APIs with sun/moon data"
+license = { text = "Apache-2.0" }
+authors = [{ name = "JarbasAl", email = "jarbasai@mailfence.com" }]
+readme = "readme.md"
+requires-python = ">=3.10"
+dependencies = [
+    "requests",
+    "timezonefinder",
+    "geopy",
+    "pendulum>=3",
+    "astral>=3,<4",
+]
+
+[project.urls]
+Homepage = "https://github.com/OpenJarbas/temporalis"
+
+[project.optional-dependencies]
+test = ["pytest", "responses"]
+
+[tool.pytest.ini_options]
+addopts = "-p no:ovoscope"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["temporalis*"]
+
+[tool.setuptools.package-data]
+temporalis = ["py.typed"]

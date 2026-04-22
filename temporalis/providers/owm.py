@@ -1,6 +1,17 @@
 from temporalis.location import geolocate
 from temporalis.providers import WeatherProvider
-from temporalis import WeatherData, DataPoint
+from temporalis import WeatherData, DataPoint, MinutelyData, MinutelyForecast
+
+# OWM always returns wind speed in m/s and precipitation in mm regardless of
+# the `units` param (the units param only affects temperature).  We convert
+# locally to match the user's requested unit system.
+
+def _ms_to_mph(ms):
+    return round(ms * 2.237, 2) if ms is not None else None
+
+
+def _mm_to_in(mm):
+    return round(mm / 25.4, 4) if mm is not None else None
 
 
 class OWM(WeatherProvider):
@@ -8,17 +19,35 @@ class OWM(WeatherProvider):
 
     def __init__(self, lat, lon, key=None,
                  date=None, units="metric"):
-        if units in ["english", "imperial", "us"]:
-            units = "imperial"
-        elif units != "metric":
-            units = "si"
         super().__init__(lat, lon, date, units)
         self.key = key or self.default_key
+        self._minutely: list = []
         self._request()
+
+    def _owm_units(self):
+        """Translate internal unit name to OWM API units param."""
+        return "imperial" if self.units == "us" else self.units
+
+    def _speed_unit(self):
+        return "mph" if self.units == "us" else "m/s"
+
+    def _precip_unit(self):
+        return "inch" if self.units == "us" else "mm"
+
+    def _convert_speed(self, ms):
+        """OWM always returns m/s; convert to mph for imperial mode."""
+        if ms is None:
+            return None
+        return _ms_to_mph(ms) if self.units == "us" else ms
+
+    def _convert_precip(self, mm):
+        """OWM always returns mm; convert to inches for imperial mode."""
+        if mm is None:
+            return None
+        return _mm_to_in(mm) if self.units == "us" else mm
 
     @staticmethod
     def from_address(address, key=None):
-        key = key or OWM.default_key
         lat, lon = geolocate(address)
         return OWM(lat, lon, key)
 
@@ -33,8 +62,8 @@ class OWM(WeatherProvider):
                       "lat}&lon={lon}&appid={key}&units={units}"
             url = API_URL.format(key=self.key, lat=self.latitude,
                                  lon=self.longitude,
-                                 units=self.units)
-        entry = self.session.get(url).json()
+                                 units=self._owm_units())
+        entry = self._get_json(url)
         """
         {'base': 'stations',
          'clouds': {'all': 20},  # %
@@ -106,9 +135,9 @@ class OWM(WeatherProvider):
             ap_temperature = DataPoint("ApparentTemperature", ap_temperature,
                                        unit)
 
-        wind_speed = entry.get("wind", {}).get("speed")
-        if wind_speed is not None:
-            wind_speed = DataPoint("WindSpeed", wind_speed, "m/s")
+        wind_speed_raw = entry.get("wind", {}).get("speed")
+        wind_speed = DataPoint("WindSpeed", self._convert_speed(wind_speed_raw),
+                               self._speed_unit()) if wind_speed_raw is not None else None
 
         wind_bearing = entry.get("wind", {}).get("deg")
         if wind_bearing is not None:
@@ -121,13 +150,14 @@ class OWM(WeatherProvider):
             icon = _w[0].get("main", "").lower()
             summary = _w[0].get("description") or icon
 
-        # TODO precip
         rain1h = entry.get("rain", {}).get("1h")
         rain3h = entry.get("rain", {}).get("3h")
-        if rain3h and not rain1h:
+        if rain3h is not None and rain1h is None:
             rain1h = rain3h / 3
+        precip = DataPoint("Precipitation", self._convert_precip(rain1h),
+                           self._precip_unit()) if rain1h is not None else None
 
-        ts = entry["dt"]  # - entry["timezone"]
+        ts = entry["dt"]
         date = self._stamp_to_datetime(ts)
         w = {
             "datetime": date,
@@ -139,9 +169,9 @@ class OWM(WeatherProvider):
             "apparentTemperature": ap_temperature,
             "windSpeed": wind_speed,
             "windBearing": wind_bearing,
+            "precipitation": precip,
             "summary": summary,
             "icon": icon,
-            # "precipIntensity": rain1h or rain3h
         }
 
         hour = WeatherData.from_dict(w)
@@ -168,9 +198,9 @@ class OWM(WeatherProvider):
                       "={lat}&lon={lon}&appid={key}&units={units}"
             url = OWM_URL.format(key=self.key, lat=self.latitude,
                                  lon=self.longitude,
-                                 units=self.units)
+                                 units=self._owm_units())
 
-        res = self.session.get(url).json()
+        res = self._get_json(url)
 
         # OWM returns 3h in 3h readings
         hours = []
@@ -196,7 +226,7 @@ class OWM(WeatherProvider):
             if self.units == "metric":
                 unit = "ºC"
             elif self.units == "si":
-                unit = "k"
+                unit = "K"
             else:
                 unit = "ºF"
             if temperature is not None:
@@ -217,9 +247,9 @@ class OWM(WeatherProvider):
                                            min_val=temperature_min,
                                            max_val=temperature_max)
 
-            wind_speed = entry.get("wind", {}).get("speed")
-            if wind_speed is not None:
-                wind_speed = DataPoint("WindSpeed", wind_speed, "m/s")
+            wind_speed_raw = entry.get("wind", {}).get("speed")
+            wind_speed = DataPoint("WindSpeed", self._convert_speed(wind_speed_raw),
+                                   self._speed_unit()) if wind_speed_raw is not None else None
 
             wind_bearing = entry.get("wind", {}).get("deg")
             if wind_bearing is not None:
@@ -232,13 +262,14 @@ class OWM(WeatherProvider):
                 icon = _w[0].get("main", "").lower()
                 summary = _w[0].get("description") or icon
 
-            # TODO precip
             rain1h = entry.get("rain", {}).get("1h")
             rain3h = entry.get("rain", {}).get("3h")
-            if rain3h and not rain1h:
+            if rain3h is not None and rain1h is None:
                 rain1h = rain3h / 3
+            precip = DataPoint("Precipitation", self._convert_precip(rain1h),
+                               self._precip_unit()) if rain1h is not None else None
 
-            ts = entry["dt"]  # - offset
+            ts = entry["dt"]
             date = self._stamp_to_datetime(ts)
             w = {
                 "datetime": date,
@@ -250,9 +281,9 @@ class OWM(WeatherProvider):
                 "apparentTemperature": ap_temperature,
                 "windSpeed": wind_speed,
                 "windBearing": wind_bearing,
+                "precipitation": precip,
                 "summary": summary,
                 "icon": icon,
-                # "precipIntensity": rain1h or rain3h
             }
 
             h = WeatherData().from_dict(w)
@@ -280,7 +311,43 @@ class OWM(WeatherProvider):
                               "icon": daily_icon,
                               "data": days}
 
+    def _request_minutely(self):
+        """One Call 3.0 — per-minute precipitation for the next 60 minutes.
+
+        Requires a paid One Call 3.0 subscription key. Falls back silently
+        when the endpoint returns a 401/402 or when minutely data is absent
+        (e.g. the location has no radar coverage).
+        """
+        url = (
+            "https://api.openweathermap.org/data/3.0/onecall"
+            f"?lat={self.latitude}&lon={self.longitude}"
+            f"&appid={self.key}&exclude=current,hourly,daily,alerts"
+        )
+        try:
+            resp = self.session.get(url)
+            if not resp.ok:
+                return
+            raw = resp.json()
+        except Exception:
+            return
+
+        for entry in raw.get("minutely", []):
+            ts = entry.get("dt")
+            if ts is None:
+                continue
+            dt = self._stamp_to_datetime(ts)
+            precip_val = entry.get("precipitation")
+            p_unit = "in/h" if self.units == "us" else "mm/h"
+            precip_converted = self._convert_precip(precip_val)
+            precip = DataPoint("Precipitation", precip_converted, p_unit) if precip_val is not None else None
+            self._minutely.append(MinutelyData(dt, precipitation=precip))
+
+    @property
+    def minutely(self) -> MinutelyForecast:
+        return MinutelyForecast(self._minutely)
+
     def _request(self):
         self._request_current()
         self._request_forecast()
+        self._request_minutely()
 
