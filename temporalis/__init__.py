@@ -1,15 +1,20 @@
+from __future__ import annotations
+
+from typing import Optional, Any
 from temporalis.time import int_to_weekday
 import pendulum
 from pprint import pprint
 
 
 class DataPoint:
-    def __init__(self, name, value, units,
-                 min_val=None, max_val=None,
-                 low_val=None, high_val=None,
-                 time=None, min_time=None, max_time=None,
-                 low_time=None, high_time=None,
-                 prob=None, prob_min=None, prob_max=None):
+    def __init__(self, name: str, value: Optional[float], units: str,
+                 min_val: Optional[float] = None, max_val: Optional[float] = None,
+                 low_val: Optional[float] = None, high_val: Optional[float] = None,
+                 time: Optional[Any] = None, min_time: Optional[Any] = None,
+                 max_time: Optional[Any] = None,
+                 low_time: Optional[Any] = None, high_time: Optional[Any] = None,
+                 prob: Optional[float] = None, prob_min: Optional[float] = None,
+                 prob_max: Optional[float] = None):
         self.name = name
         self.units = units
         self.value = value
@@ -31,7 +36,7 @@ class DataPoint:
         tz = tz or "UTC"
         return pendulum.from_timestamp(stamp, tz=tz)
 
-    def as_dict(self):
+    def as_dict(self) -> dict:
         data = dict(self.__dict__)
         for k in list(data):
             if not data[k]:
@@ -39,7 +44,7 @@ class DataPoint:
         return data
 
     @staticmethod
-    def from_dict(data):
+    def from_dict(data) -> Optional[DataPoint]:
         if not isinstance(data, int) and not data:
             return None
         if isinstance(data, DataPoint):
@@ -125,7 +130,7 @@ class WeatherData:
             return -1
         return int_to_weekday(self.datetime.weekday())
 
-    def as_dict(self):
+    def as_dict(self) -> dict:
         data = dict(self.__dict__)
         for k in list(data):
             try:
@@ -141,7 +146,7 @@ class WeatherData:
         return pendulum.from_timestamp(stamp, tz=tz)
 
     @staticmethod
-    def from_dict(data):
+    def from_dict(data) -> WeatherData:
         assert isinstance(data, dict)
         point = WeatherData()
         point.icon = data.get("icon")
