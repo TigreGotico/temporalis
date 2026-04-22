@@ -1,5 +1,5 @@
 import responses as resp
-from temporalis.providers.openmeteo_historical import OpenMeteoHistorical
+from temporalis.providers.openmeteo import OpenMeteo
 from temporalis import WeatherData
 
 _URL = "https://archive-api.open-meteo.com/v1/archive"
@@ -44,7 +44,8 @@ _RESPONSE = {
 @resp.activate
 def test_historical_days():
     resp.add(resp.GET, _URL, json=_RESPONSE)
-    p = OpenMeteoHistorical(38.72, -9.14, start="2024-01-01", end="2024-01-03")
+    p = OpenMeteo(38.72, -9.14, start="2024-01-01", end="2024-01-03")
+    assert p.historical is True
     assert len(p.days) == 3
     assert p.days[0].temperature is not None
     assert p.days[0].temperature.value == 11.0  # avg of 14+8
@@ -53,7 +54,7 @@ def test_historical_days():
 @resp.activate
 def test_historical_hours():
     resp.add(resp.GET, _URL, json=_RESPONSE)
-    p = OpenMeteoHistorical(38.72, -9.14, start="2024-01-01", end="2024-01-03")
+    p = OpenMeteo(38.72, -9.14, start="2024-01-01", end="2024-01-03")
     assert len(p.hours) == 3
     assert p.hours[0].temperature is not None
     assert p.hours[0].humidity is not None
@@ -62,7 +63,7 @@ def test_historical_hours():
 @resp.activate
 def test_historical_weather():
     resp.add(resp.GET, _URL, json=_RESPONSE)
-    p = OpenMeteoHistorical(38.72, -9.14, start="2024-01-01", end="2024-01-03")
+    p = OpenMeteo(38.72, -9.14, start="2024-01-01", end="2024-01-03")
     assert isinstance(p.weather, WeatherData)
     assert p.weather.temperature is not None
 
@@ -70,6 +71,6 @@ def test_historical_weather():
 @resp.activate
 def test_historical_sun_moon():
     resp.add(resp.GET, _URL, json=_RESPONSE)
-    p = OpenMeteoHistorical(38.72, -9.14, start="2024-01-01", end="2024-01-03")
+    p = OpenMeteo(38.72, -9.14, start="2024-01-01", end="2024-01-03")
     assert p.dawn is not None
     assert p.moon_phase_name is not None

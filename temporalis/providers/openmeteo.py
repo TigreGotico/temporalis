@@ -2,7 +2,8 @@ import pendulum
 from temporalis.providers import WeatherProvider
 from temporalis import WeatherData, DataPoint
 
-_API_URL = "https://api.open-meteo.com/v1/forecast"
+_FORECAST_URL = "https://api.open-meteo.com/v1/forecast"
+_ARCHIVE_URL = "https://archive-api.open-meteo.com/v1/archive"
 
 _WMO_ICON = {
     0: "clear",
@@ -28,6 +29,14 @@ _HOURLY_PARAMS = [
     "is_day",
 ]
 
+# Archive API does not support precipitation_probability / is_day / uv_index_max
+_HOURLY_PARAMS_ARCHIVE = [
+    "temperature_2m", "apparent_temperature", "relativehumidity_2m",
+    "dewpoint_2m", "cloudcover", "pressure_msl", "windspeed_10m",
+    "winddirection_10m", "windgusts_10m", "precipitation",
+    "snowfall", "visibility", "weathercode",
+]
+
 _DAILY_PARAMS = [
     "temperature_2m_max", "temperature_2m_min",
     "apparent_temperature_max", "apparent_temperature_min",
@@ -38,18 +47,45 @@ _DAILY_PARAMS = [
     "winddirection_10m_dominant", "uv_index_max", "sunrise", "sunset",
 ]
 
+_DAILY_PARAMS_ARCHIVE = [
+    "temperature_2m_max", "temperature_2m_min",
+    "apparent_temperature_max", "apparent_temperature_min",
+    "precipitation_sum", "precipitation_hours",
+    "weathercode", "windspeed_10m_max", "windgusts_10m_max",
+    "winddirection_10m_dominant", "shortwave_radiation_sum",
+]
+
 
 class OpenMeteo(WeatherProvider):
+    """Open-Meteo weather provider — global, no API key.
 
-    def __init__(self, lat, lon, date=None, units="metric", lang="en"):
+    Forecast mode (default):
+        p = OpenMeteo(lat, lon)
+
+    Historical mode (supply at least start):
+        p = OpenMeteo(lat, lon, start="2024-01-01", end="2024-01-31")
+        p = OpenMeteo(lat, lon, start="2024-07-04")  # single day
+    """
+
+    def __init__(self, lat, lon, date=None, units="metric", lang="en",
+                 start=None, end=None):
         super().__init__(lat, lon, date, units, lang)
+        self.start_date = start
+        # default end = start (single day) when only start is given
+        self.end_date = end if end is not None else start
         self._request()
+
+    @property
+    def historical(self) -> bool:
+        return self.start_date is not None
 
     @staticmethod
     def from_address(address, **kwargs):
         from temporalis.location import geolocate
         lat, lon = geolocate(address)
         return OpenMeteo(lat, lon, **kwargs)
+
+    # --- unit helpers ---------------------------------------------------------
 
     def _unit_params(self):
         if self._units in ("us", "imperial"):
@@ -69,7 +105,15 @@ class OpenMeteo(WeatherProvider):
     def _precip_unit(self):
         return "inch" if self._units in ("us", "imperial") else "mm"
 
+    # --- HTTP -----------------------------------------------------------------
+
     def _request(self):
+        if self.historical:
+            self._request_archive()
+        else:
+            self._request_forecast()
+
+    def _request_forecast(self):
         params = {
             "latitude": self.latitude,
             "longitude": self.longitude,
@@ -79,11 +123,36 @@ class OpenMeteo(WeatherProvider):
             "timezone": self.timezone or "UTC",
             **self._unit_params(),
         }
-        raw = self.session.get(_API_URL, params=params).json()
-
+        raw = self.session.get(_FORECAST_URL, params=params).json()
         self._parse_current(raw.get("current_weather", {}))
         self._parse_hourly(raw.get("hourly", {}))
         self._parse_daily(raw.get("daily", {}))
+
+    def _request_archive(self):
+        params = {
+            "latitude": self.latitude,
+            "longitude": self.longitude,
+            "start_date": self.start_date,
+            "end_date": self.end_date,
+            "daily": ",".join(_DAILY_PARAMS_ARCHIVE),
+            "hourly": ",".join(_HOURLY_PARAMS_ARCHIVE),
+            "timezone": self.timezone or "UTC",
+            **self._unit_params(),
+        }
+        raw = self.session.get(_ARCHIVE_URL, params=params).json()
+        self._parse_daily(raw.get("daily", {}))
+        self._parse_hourly(raw.get("hourly", {}))
+        # set currently from first day when in archive mode
+        days = self.data["daily"].get("data", [])
+        if days:
+            self.data["currently"] = {
+                "datetime": days[0].datetime,
+                "temperature": days[0].temperature,
+                "summary": days[0].summary,
+                "icon": days[0].icon,
+            }
+
+    # --- parsers --------------------------------------------------------------
 
     def _parse_current(self, cw):
         temp = cw.get("temperature")
@@ -102,7 +171,7 @@ class OpenMeteo(WeatherProvider):
 
         dt = pendulum.parse(time_str, tz=self.timezone) if time_str else self.datetime
 
-        w = {
+        self.data["currently"] = {
             "datetime": dt,
             "temperature": temperature,
             "apparentTemperature": temperature,
@@ -111,7 +180,6 @@ class OpenMeteo(WeatherProvider):
             "summary": icon,
             "icon": icon,
         }
-        self.data["currently"] = w
 
     def _parse_hourly(self, hourly):
         times = hourly.get("time", [])
@@ -126,9 +194,9 @@ class OpenMeteo(WeatherProvider):
 
         hours = []
         for i, time_str in enumerate(times):
-            def _get(key):
+            def _get(key, idx=i):
                 arr = hourly.get(key, [])
-                return arr[i] if i < len(arr) else None
+                return arr[idx] if idx < len(arr) else None
 
             temp = _get("temperature_2m")
             ap_temp = _get("apparent_temperature")
@@ -182,9 +250,9 @@ class OpenMeteo(WeatherProvider):
 
         days = []
         for i, time_str in enumerate(times):
-            def _get(key):
+            def _get(key, idx=i):
                 arr = daily.get(key, [])
-                return arr[i] if i < len(arr) else None
+                return arr[idx] if idx < len(arr) else None
 
             t_max = _get("temperature_2m_max")
             t_min = _get("temperature_2m_min")
@@ -201,9 +269,7 @@ class OpenMeteo(WeatherProvider):
             uv = _get("uv_index_max")
             icon = _WMO_ICON.get(code, "clouds")
 
-            avg_temp = None
-            if t_max is not None and t_min is not None:
-                avg_temp = (t_max + t_min) / 2
+            avg_temp = (t_max + t_min) / 2 if (t_max is not None and t_min is not None) else t_max
 
             w = {
                 "datetime": pendulum.parse(time_str, tz=tz),
@@ -211,7 +277,7 @@ class OpenMeteo(WeatherProvider):
                                          min_val=t_min, max_val=t_max) if avg_temp is not None else None,
                 "apparentTemperature": DataPoint("ApparentTemperature",
                                                   (ap_max + ap_min) / 2 if (ap_max is not None and ap_min is not None) else ap_max,
-                                                  t_unit, min_val=ap_min, max_val=ap_max) if (ap_max is not None) else None,
+                                                  t_unit, min_val=ap_min, max_val=ap_max) if ap_max is not None else None,
                 "precipitation": DataPoint("Precipitation", precip_sum, p_unit,
                                            prob=precip_prob_mean / 100 if precip_prob_mean is not None else None,
                                            prob_min=precip_prob_min / 100 if precip_prob_min is not None else None,

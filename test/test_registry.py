@@ -33,7 +33,7 @@ def test_available_providers():
     assert "metno" in providers
     assert "nws" in providers
     assert "owm" in providers
-    assert "openmeteo_historical" in providers
+    assert "openmeteo_airquality" in providers
 
 
 @resp.activate
