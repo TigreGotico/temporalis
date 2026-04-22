@@ -1,3 +1,5 @@
+from __future__ import annotations
+from typing import Optional, List, Dict, Any, Type
 from temporalis.location import geolocate, get_timezone
 from temporalis.sun import get_dawn, get_dusk, get_sunrise, get_sunset, get_noon
 from temporalis import WeatherData, DailyForecast, HourlyForecast
@@ -17,6 +19,7 @@ class WeatherProvider:
     def __init__(self, lat, lon, date=None, units="metric", lang="en"):
         self.lang = lang
         self.datetime = date or now_utc()
+        self._alerts = []
         if units in ["english", "imperial", "us"]:
             units = "us"
 
@@ -57,6 +60,15 @@ class WeatherProvider:
                      "daily": {},
                      "hourly": {}}
 
+    def __repr__(self):
+        try:
+            w = self.weather
+            return (f"{self.__class__.__name__}("
+                    f"{self.latitude:.4f}, {self.longitude:.4f}) "
+                    f"— {w.summary} {w.temperature}")
+        except Exception:
+            return f"{self.__class__.__name__}({self.latitude:.4f}, {self.longitude:.4f})"
+
     # sun
     @property
     def dawn(self):
@@ -94,6 +106,23 @@ class WeatherProvider:
     @property
     def moon_phase_name(self):
         return moon_code_to_name(self.moon_code, self.lang)
+
+    # uv
+    @property
+    def uv_index(self):
+        """Current UV index, or None if the provider does not supply it."""
+        uv = getattr(self.weather, "uvIndex", None)
+        if uv is not None:
+            return uv.value
+        return None
+
+    # alerts
+    @property
+    def alerts(self):
+        """List of active weather alerts. Each is a dict with keys:
+        event, severity, headline, description, onset, expires.
+        Returns an empty list if the provider does not support alerts."""
+        return list(self._alerts)
 
     # localization
     @property
@@ -233,6 +262,35 @@ class WeatherProvider:
         hourly_summary = days[0].summary
         hourly_icon = days[0].icon
         return hourly_summary, hourly_icon
+
+    @staticmethod
+    def compare(provider_names, lat, lon, **kwargs):
+        """Fetch the same location from multiple providers and return a summary dict.
+
+        Example:
+            results = WeatherProvider.compare(["openmeteo", "metno"], 38.72, -9.14)
+            for name, data in results.items():
+                print(name, data["temperature"], data["summary"])
+        """
+        import temporalis.providers.registry  # noqa: F401 — ensure registration
+        results = {}
+        for name in provider_names:
+            try:
+                p = WeatherProvider.get(name, lat, lon, **kwargs)
+                w = p.weather
+                results[name] = {
+                    "temperature": w.temperature,
+                    "summary": w.summary,
+                    "humidity": w.humidity,
+                    "wind_speed": w.windSpeed,
+                    "precipitation": w.precipitation,
+                    "uv_index": p.uv_index,
+                    "alerts": p.alerts,
+                    "provider": p,
+                }
+            except Exception as e:
+                results[name] = {"error": str(e)}
+        return results
 
     # Registry
     _registry = {}
