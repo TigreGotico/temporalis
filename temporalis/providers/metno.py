@@ -59,6 +59,16 @@ class MetNo(WeatherProvider):
     def _speed_unit(self):
         return "mph" if self._units in ("us", "imperial") else "m/s"
 
+    def _precip_unit(self):
+        return "inch" if self._units in ("us", "imperial") else "mm"
+
+    def _convert_precip(self, mm):
+        if mm is None:
+            return None
+        if self._units in ("us", "imperial"):
+            return round(mm / 25.4, 3)
+        return mm
+
     def _convert_temp(self, celsius):
         if celsius is None:
             return None
@@ -84,6 +94,7 @@ class MetNo(WeatherProvider):
         tz = self.timezone or "UTC"
         t_unit = self._temp_unit()
         s_unit = self._speed_unit()
+        p_unit = self._precip_unit()
 
         hours = []
         days = {}
@@ -99,7 +110,7 @@ class MetNo(WeatherProvider):
             block = n1h or n6h
             symbol = block.get("summary", {}).get("symbol_code", "")
             icon = _symbol_to_icon(symbol)
-            precip = (block.get("details", {}) or {}).get("precipitation_amount")
+            precip = self._convert_precip((block.get("details", {}) or {}).get("precipitation_amount"))
 
             temp_c = inst.get("air_temperature")
             temp = self._convert_temp(temp_c)
@@ -123,7 +134,7 @@ class MetNo(WeatherProvider):
                 "pressure": DataPoint("Pressure", pressure, "hPa") if pressure is not None else None,
                 "windSpeed": DataPoint("WindSpeed", wind_speed, s_unit) if wind_speed is not None else None,
                 "windBearing": DataPoint("WindBearing", wind_dir_deg, "°") if wind_dir_deg is not None else None,
-                "precipitation": DataPoint("Precipitation", precip, "mm") if precip is not None else None,
+                "precipitation": DataPoint("Precipitation", precip, p_unit) if precip is not None else None,
                 "uvIndex": DataPoint("UVIndex", uv, "") if uv is not None else None,
                 "summary": icon,
                 "icon": icon,

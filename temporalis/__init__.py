@@ -39,7 +39,7 @@ class DataPoint:
     def as_dict(self) -> dict:
         data = dict(self.__dict__)
         for k in list(data):
-            if not data[k]:
+            if data[k] is None:
                 data.pop(k)
         return data
 
@@ -139,7 +139,7 @@ class WeatherData:
                 data[k] = data[k].as_dict()
             except Exception:
                 pass
-            if not data[k]:
+            if data[k] is None:
                 data.pop(k)
         return data
 

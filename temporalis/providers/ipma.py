@@ -44,6 +44,45 @@ def _nearest(candidates, lat, lon, lat_key, lon_key):
 
 class IPMA(WeatherProvider):
 
+    def _temp_unit(self):
+        return "ºF" if self._units == "us" else "ºC"
+
+    def _speed_unit(self):
+        return "mph" if self._units == "us" else "m/s"
+
+    def _precip_unit(self):
+        return "inch" if self._units == "us" else "mm"
+
+    def _convert_temp(self, celsius):
+        if celsius is None:
+            return None
+        if self._units == "us":
+            return round(float(celsius) * 9 / 5 + 32, 1)
+        return float(celsius)
+
+    def _convert_speed_ms(self, ms):
+        """Convert m/s (IPMA observations native) to user units."""
+        if ms is None:
+            return None
+        if self._units == "us":
+            return round(float(ms) * 2.237, 1)
+        return float(ms)
+
+    def _convert_speed_kmh(self, kmh):
+        """Convert km/h (IPMA forecast wind class speeds) to user units."""
+        if kmh is None:
+            return None
+        if self._units == "us":
+            return round(float(kmh) * 0.621371, 1)
+        return float(kmh)
+
+    def _convert_precip(self, mm):
+        if mm is None:
+            return None
+        if self._units == "us":
+            return round(float(mm) / 25.4, 3)
+        return float(mm)
+
     def __init__(self, lat, lon, date=None, units="metric", lang="en"):
         if not (_PT_LAT_MIN <= lat <= _PT_LAT_MAX and
                 _PT_LON_MIN <= lon <= _PT_LON_MAX):
@@ -90,22 +129,19 @@ class IPMA(WeatherProvider):
         nearest = _nearest(candidates, self.latitude, self.longitude, "lat", "lon")
         obs = obs_at_ts[nearest["id"]]
 
-        temp = _valid(obs.get("temperatura"))
+        temp = self._convert_temp(_valid(obs.get("temperatura")))
         humidity = _valid(obs.get("humidade"))
         pressure = _valid(obs.get("pressao"))
-        wind_speed = _valid(obs.get("intensidadeVento"))
+        wind_speed = self._convert_speed_ms(_valid(obs.get("intensidadeVento")))
         wind_dir = _WIND_DIR_DEG.get(obs.get("idDireccVento"))
-        precip = _valid(obs.get("precAcumulada"))
+        precip = self._convert_precip(_valid(obs.get("precAcumulada")))
 
-        unit = "ºF" if self._units == "us" else "ºC"
-        speed_unit = "mph" if self._units == "us" else "m/s"
-
-        temperature = DataPoint("Temperature", temp, unit) if temp is not None else None
+        temperature = DataPoint("Temperature", temp, self._temp_unit()) if temp is not None else None
         hum = DataPoint("Humidity", humidity, "%") if humidity is not None else None
         pres = DataPoint("Pressure", pressure, "hPa") if pressure is not None else None
-        wspeed = DataPoint("WindSpeed", wind_speed, speed_unit) if wind_speed is not None else None
+        wspeed = DataPoint("WindSpeed", wind_speed, self._speed_unit()) if wind_speed is not None else None
         wbearing = DataPoint("WindBearing", wind_dir, "°") if wind_dir is not None else None
-        prec = DataPoint("Precipitation", precip, "mm") if precip is not None else None
+        prec = DataPoint("Precipitation", precip, self._precip_unit()) if precip is not None else None
 
         dt = pendulum.parse(latest_ts, tz=self.timezone)
 
@@ -125,9 +161,6 @@ class IPMA(WeatherProvider):
         self.data["hourly"] = {"summary": "observation", "icon": "observation", "data": [WeatherData.from_dict(w)]}
 
     def _request_daily(self):
-        unit = "ºF" if self._units == "us" else "ºC"
-        speed_unit = "mph" if self._units == "us" else "km/h"
-
         days = []
         for day_idx in range(10):
             url = f"{_BASE}/forecast/meteorology/cities/daily/hp-daily-forecast-day{day_idx}.json"
@@ -150,19 +183,22 @@ class IPMA(WeatherProvider):
                 except (TypeError, ValueError):
                     precip_prob = None
             wind_class = nearest.get("classWindSpeed")
-            wind_speed_val = _WIND_CLASS_SPEED.get(wind_class)
+            wind_speed_kmh = _WIND_CLASS_SPEED.get(wind_class)
+            wind_speed_val = self._convert_speed_kmh(wind_speed_kmh)
             weather_type = nearest.get("idWeatherType")
             icon = _WEATHER_TYPE_ICON.get(weather_type, "clouds")
 
             temperature = None
             if t_min is not None and t_max is not None:
-                avg = (float(t_min) + float(t_max)) / 2
-                temperature = DataPoint("Temperature", avg, unit,
-                                        min_val=float(t_min), max_val=float(t_max))
+                t_min_conv = self._convert_temp(t_min)
+                t_max_conv = self._convert_temp(t_max)
+                avg = (t_min_conv + t_max_conv) / 2
+                temperature = DataPoint("Temperature", avg, self._temp_unit(),
+                                        min_val=t_min_conv, max_val=t_max_conv)
             elif t_max is not None:
-                temperature = DataPoint("Temperature", float(t_max), unit)
+                temperature = DataPoint("Temperature", self._convert_temp(t_max), self._temp_unit())
 
-            wspeed = DataPoint("WindSpeed", wind_speed_val, speed_unit) if wind_speed_val else None
+            wspeed = DataPoint("WindSpeed", wind_speed_val, self._speed_unit()) if wind_speed_val is not None else None
             prec = DataPoint("Precipitation", precip_prob, "%",
                              prob=precip_prob / 100 if precip_prob is not None else None) if precip_prob is not None else None
 

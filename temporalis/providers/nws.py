@@ -37,6 +37,14 @@ def _f_to_c(f):
     return round((f - 32) * 5 / 9, 1) if f is not None else None
 
 
+def _c_to_f(c):
+    return round(c * 9 / 5 + 32, 1) if c is not None else None
+
+
+def _mm_to_in(mm):
+    return round(mm / 25.4, 3) if mm is not None else None
+
+
 class NWS(WeatherProvider):
     """NOAA National Weather Service — USA only, no API key."""
 
@@ -61,12 +69,24 @@ class NWS(WeatherProvider):
     def _speed_unit(self):
         return "mph" if self._units in ("us", "imperial") else "m/s"
 
+    def _precip_unit(self):
+        return "inch" if self._units in ("us", "imperial") else "mm"
+
     def _convert_temp(self, fahrenheit):
+        """Convert NWS temperature (native °F) to user units."""
         if fahrenheit is None:
             return None
         if self._units not in ("us", "imperial"):
             return _f_to_c(fahrenheit)
         return fahrenheit
+
+    def _convert_temp_c(self, celsius):
+        """Convert a Celsius value (e.g. dewpoint from API) to user units."""
+        if celsius is None:
+            return None
+        if self._units in ("us", "imperial"):
+            return _c_to_f(celsius)
+        return celsius
 
     def _convert_speed_mph(self, mph):
         if mph is None:
@@ -111,7 +131,7 @@ class NWS(WeatherProvider):
             humidity = (p.get("relativeHumidity") or {}).get("value")
             dew_raw = p.get("dewpoint", {})
             dew_c = dew_raw.get("value") if isinstance(dew_raw, dict) else None
-            dew = self._convert_temp(dew_c) if dew_c is not None else None
+            dew = self._convert_temp_c(dew_c)
             precip_prob = (p.get("probabilityOfPrecipitation") or {}).get("value")
             wind_mph = _parse_wind_speed(p.get("windSpeed", ""))
             wind_speed = self._convert_speed_mph(wind_mph)
@@ -125,10 +145,10 @@ class NWS(WeatherProvider):
                 "temperature": DataPoint("Temperature", temp, t_unit) if temp is not None else None,
                 "apparentTemperature": DataPoint("ApparentTemperature", temp, t_unit) if temp is not None else None,
                 "humidity": DataPoint("Humidity", humidity, "%") if humidity is not None else None,
-                "dewPoint": DataPoint("DewPoint", dew_c, "ºC") if dew_c is not None else None,
+                "dewPoint": DataPoint("DewPoint", dew, t_unit) if dew is not None else None,
                 "windSpeed": DataPoint("WindSpeed", wind_speed, s_unit) if wind_speed is not None else None,
                 "windBearing": DataPoint("WindBearing", wind_deg, "°") if wind_deg is not None else None,
-                "precipitation": DataPoint("Precipitation", 0.0, "mm",
+                "precipitation": DataPoint("Precipitation", None, self._precip_unit(),
                                            prob=precip_prob / 100 if precip_prob is not None else None) if precip_prob is not None else None,
                 "summary": summary,
                 "icon": icon,

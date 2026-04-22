@@ -196,7 +196,7 @@ class OWM(WeatherProvider):
             if self.units == "metric":
                 unit = "ºC"
             elif self.units == "si":
-                unit = "k"
+                unit = "K"
             else:
                 unit = "ºF"
             if temperature is not None:
