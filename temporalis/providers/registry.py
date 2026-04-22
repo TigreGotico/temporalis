@@ -6,6 +6,7 @@ from temporalis.providers.openmeteo import OpenMeteo
 from temporalis.providers.metno import MetNo
 from temporalis.providers.nws import NWS
 from temporalis.providers.openmeteo_airquality import OpenMeteoAirQuality
+from temporalis.providers.openmeteo_marine import OpenMeteoMarine
 
 WeatherProvider.register("owm", OWM)
 WeatherProvider.register("ipma", IPMA)
@@ -13,3 +14,4 @@ WeatherProvider.register("openmeteo", OpenMeteo)
 WeatherProvider.register("metno", MetNo)
 WeatherProvider.register("nws", NWS)
 WeatherProvider.register("openmeteo_airquality", OpenMeteoAirQuality)
+WeatherProvider.register("openmeteo_marine", OpenMeteoMarine)

@@ -103,6 +103,18 @@ class WeatherData:
         self.windGust = None
         self.windSpeed = None
         self.snow = None
+        # marine fields
+        self.waveHeight = None
+        self.waveDirection = None
+        self.wavePeriod = None
+        self.windWaveHeight = None
+        self.windWaveDirection = None
+        self.windWavePeriod = None
+        self.swellHeight = None
+        self.swellDirection = None
+        self.swellPeriod = None
+        self.currentVelocity = None
+        self.currentDirection = None
 
     def __repr__(self):
         return str(self.datetime) + ":" + self.summary
@@ -178,6 +190,17 @@ class WeatherData:
         point.windSpeed = DataPoint.from_dict(data.get("windSpeed"))
         point.precipitation = DataPoint.from_dict(data.get("precipitation"))
         point.snow = DataPoint.from_dict(data.get("snow"))
+        point.waveHeight = DataPoint.from_dict(data.get("waveHeight"))
+        point.waveDirection = DataPoint.from_dict(data.get("waveDirection"))
+        point.wavePeriod = DataPoint.from_dict(data.get("wavePeriod"))
+        point.windWaveHeight = DataPoint.from_dict(data.get("windWaveHeight"))
+        point.windWaveDirection = DataPoint.from_dict(data.get("windWaveDirection"))
+        point.windWavePeriod = DataPoint.from_dict(data.get("windWavePeriod"))
+        point.swellHeight = DataPoint.from_dict(data.get("swellHeight"))
+        point.swellDirection = DataPoint.from_dict(data.get("swellDirection"))
+        point.swellPeriod = DataPoint.from_dict(data.get("swellPeriod"))
+        point.currentVelocity = DataPoint.from_dict(data.get("currentVelocity"))
+        point.currentDirection = DataPoint.from_dict(data.get("currentDirection"))
 
         return point
 
