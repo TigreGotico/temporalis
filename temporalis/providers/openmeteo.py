@@ -127,6 +127,7 @@ class OpenMeteo(WeatherProvider):
         self._parse_current(raw.get("current_weather", {}))
         self._parse_hourly(raw.get("hourly", {}))
         self._parse_daily(raw.get("daily", {}))
+        self._enrich_current_from_hourly()
 
     def _request_archive(self):
         params = {
@@ -180,6 +181,29 @@ class OpenMeteo(WeatherProvider):
             "summary": icon,
             "icon": icon,
         }
+
+    def _enrich_current_from_hourly(self):
+        """Copy humidity, dew point, pressure, etc. from the nearest hourly entry."""
+        hours = self.data.get("hourly", {}).get("data", [])
+        if not hours:
+            return
+        cur = self.data.get("currently", {})
+        cur_dt = cur.get("datetime")
+        if cur_dt is None:
+            nearest = hours[0]
+        else:
+            nearest = min(hours, key=lambda h: abs((h.datetime - cur_dt).total_seconds())
+                          if h.datetime is not None else float("inf"))
+        for field in ("humidity", "dewPoint", "pressure", "cloudCover",
+                      "visibility", "precipitation", "uvIndex"):
+            if cur.get(field) is None and getattr(nearest, field, None) is not None:
+                cur[field] = getattr(nearest, field)
+        # Overwrite apparent temperature with richer hourly value when available
+        if getattr(nearest, "apparentTemperature", None) is not None:
+            if (cur.get("apparentTemperature") is None or
+                    (cur.get("temperature") is not None and
+                     cur.get("apparentTemperature") == cur.get("temperature"))):
+                cur["apparentTemperature"] = nearest.apparentTemperature
 
     def _parse_hourly(self, hourly):
         times = hourly.get("time", [])
