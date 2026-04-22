@@ -491,5 +491,109 @@ def test_owm_si_kelvin_unit():
     resp.add(resp.GET, _OWM_ONECALL_URL, status=401)
     p = OWM(38.72, -9.14, units="si", key="testkey")
     assert p.weather.temperature.units == "K"
-    # forecast hours should also use K
     assert p.hours[0].temperature.units == "K"
+
+
+_OWM_CURRENT_WITH_RAIN = {
+    "dt": 1714000000, "timezone": 0,
+    "coord": {"lat": 38.72, "lon": -9.14},
+    "main": {"temp": 18.0, "feels_like": 17.0, "humidity": 70,
+             "pressure": 1015, "temp_min": 16.0, "temp_max": 20.0},
+    "wind": {"speed": 10.0, "deg": 270},  # 10 m/s
+    "clouds": {"all": 20},
+    "weather": [{"main": "Rain", "description": "light rain", "icon": "10d"}],
+    "visibility": 10000,
+    "rain": {"1h": 2.54},  # 2.54 mm = exactly 0.1 inch
+}
+
+_OWM_FORECAST_WITH_RAIN = {
+    "list": [{
+        "dt": 1714000000,
+        "main": {"temp": 18.0, "temp_min": 16.0, "temp_max": 20.0,
+                 "feels_like": 17.0, "humidity": 70, "pressure": 1015},
+        "weather": [{"main": "Rain", "description": "light rain"}],
+        "wind": {"speed": 10.0, "deg": 270},  # 10 m/s
+        "clouds": {"all": 20},
+        "visibility": 10000,
+        "rain": {"3h": 7.62},  # 7.62 mm / 3 = 2.54 mm/h
+    }],
+    "city": {"name": "Lisbon"},
+}
+
+
+@resp.activate
+def test_owm_metric_wind_speed_unit():
+    """OWM API always returns m/s; metric mode must keep m/s."""
+    from temporalis.providers.owm import OWM
+    resp.add(resp.GET, _OWM_CURRENT_URL, json=_OWM_CURRENT_WITH_RAIN)
+    resp.add(resp.GET, _OWM_FORECAST_URL, json=_OWM_FORECAST_WITH_RAIN)
+    resp.add(resp.GET, _OWM_ONECALL_URL, status=401)
+    p = OWM(38.72, -9.14, units="metric", key="testkey")
+    assert p.weather.windSpeed.units == "m/s"
+    assert p.weather.windSpeed.value == 10.0
+    assert p.hours[0].windSpeed.units == "m/s"
+    assert p.hours[0].windSpeed.value == 10.0
+
+
+@resp.activate
+def test_owm_imperial_wind_speed_converted():
+    """OWM API always returns m/s; imperial mode must convert to mph."""
+    from temporalis.providers.owm import OWM
+    resp.add(resp.GET, _OWM_CURRENT_URL, json=_OWM_CURRENT_WITH_RAIN)
+    resp.add(resp.GET, _OWM_FORECAST_URL, json=_OWM_FORECAST_WITH_RAIN)
+    resp.add(resp.GET, _OWM_ONECALL_URL, status=401)
+    p = OWM(38.72, -9.14, units="imperial", key="testkey")
+    assert p.weather.windSpeed.units == "mph"
+    assert _approx(p.weather.windSpeed.value, 22.4)  # 10 m/s ≈ 22.37 mph
+
+
+@resp.activate
+def test_owm_metric_precipitation_unit():
+    """OWM API always returns mm; metric mode must keep mm."""
+    from temporalis.providers.owm import OWM
+    resp.add(resp.GET, _OWM_CURRENT_URL, json=_OWM_CURRENT_WITH_RAIN)
+    resp.add(resp.GET, _OWM_FORECAST_URL, json=_OWM_FORECAST_WITH_RAIN)
+    resp.add(resp.GET, _OWM_ONECALL_URL, status=401)
+    p = OWM(38.72, -9.14, units="metric", key="testkey")
+    assert p.weather.precipitation.units == "mm"
+    assert p.weather.precipitation.value == 2.54
+
+
+@resp.activate
+def test_owm_imperial_precipitation_converted():
+    """OWM API always returns mm; imperial mode must convert to inches."""
+    from temporalis.providers.owm import OWM
+    resp.add(resp.GET, _OWM_CURRENT_URL, json=_OWM_CURRENT_WITH_RAIN)
+    resp.add(resp.GET, _OWM_FORECAST_URL, json=_OWM_FORECAST_WITH_RAIN)
+    resp.add(resp.GET, _OWM_ONECALL_URL, status=401)
+    p = OWM(38.72, -9.14, units="imperial", key="testkey")
+    assert p.weather.precipitation.units == "inch"
+    assert _approx(p.weather.precipitation.value, 0.1, tol=0.01)  # 2.54 mm = 0.1 inch
+
+
+@resp.activate
+def test_owm_forecast_precipitation_from_3h():
+    """OWM 5-day forecast returns 3h rain totals; code divides by 3 to get 1h rate."""
+    from temporalis.providers.owm import OWM
+    resp.add(resp.GET, _OWM_CURRENT_URL, json=_OWM_CURRENT_WITH_RAIN)
+    resp.add(resp.GET, _OWM_FORECAST_URL, json=_OWM_FORECAST_WITH_RAIN)
+    resp.add(resp.GET, _OWM_ONECALL_URL, status=401)
+    p = OWM(38.72, -9.14, units="metric", key="testkey")
+    # 7.62 mm / 3 = 2.54 mm/h
+    assert p.hours[0].precipitation is not None
+    assert p.hours[0].precipitation.units == "mm"
+    assert _approx(p.hours[0].precipitation.value, 2.54, tol=0.01)
+
+
+# ── IPMA daily precipitation is a probability, not an amount ─────────────────
+
+@resp.activate
+def test_ipma_daily_precip_is_probability_not_amount():
+    """IPMA daily only gives precipitation probability; value must be None, prob set."""
+    from temporalis.providers.ipma import IPMA
+    _add_ipma_base(resp)
+    p = IPMA(38.72, -9.14, units="metric")
+    day = p.days[0]
+    assert day.precipitation is not None
+    assert day.precipitation.value is None          # no measured amount
+    assert day.precipitation.prob == pytest.approx(0.30, abs=0.01)  # 30% → 0.30
