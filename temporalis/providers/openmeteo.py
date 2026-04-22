@@ -123,7 +123,7 @@ class OpenMeteo(WeatherProvider):
             "timezone": self.timezone or "UTC",
             **self._unit_params(),
         }
-        raw = self.session.get(_FORECAST_URL, params=params).json()
+        raw = self._get_json(_FORECAST_URL, params=params)
         self._parse_current(raw.get("current_weather", {}))
         self._parse_hourly(raw.get("hourly", {}))
         self._parse_daily(raw.get("daily", {}))
@@ -140,7 +140,7 @@ class OpenMeteo(WeatherProvider):
             "timezone": self.timezone or "UTC",
             **self._unit_params(),
         }
-        raw = self.session.get(_ARCHIVE_URL, params=params).json()
+        raw = self._get_json(_ARCHIVE_URL, params=params)
         self._parse_daily(raw.get("daily", {}))
         self._parse_hourly(raw.get("hourly", {}))
         # set currently from first day when in archive mode

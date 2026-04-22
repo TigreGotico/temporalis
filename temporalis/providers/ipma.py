@@ -102,8 +102,8 @@ class IPMA(WeatherProvider):
         stations_url = f"{_BASE}/observation/meteorology/stations/stations.json"
         obs_url = f"{_BASE}/observation/meteorology/stations/observations.json"
 
-        stations_raw = self.session.get(stations_url).json()
-        obs_raw = self.session.get(obs_url).json()
+        stations_raw = self._get_json(stations_url)
+        obs_raw = self._get_json(obs_url)
 
         # Observations: {timestamp: {stationId: {fields}}}
         latest_ts = max(obs_raw.keys())
@@ -199,7 +199,9 @@ class IPMA(WeatherProvider):
                 temperature = DataPoint("Temperature", self._convert_temp(t_max), self._temp_unit())
 
             wspeed = DataPoint("WindSpeed", wind_speed_val, self._speed_unit()) if wind_speed_val is not None else None
-            prec = DataPoint("Precipitation", precip_prob, "%",
+            # IPMA daily provides precipitation probability, not an amount.
+            # Store None as value; the probability fraction goes in prob.
+            prec = DataPoint("Precipitation", None, self._precip_unit(),
                              prob=precip_prob / 100 if precip_prob is not None else None) if precip_prob is not None else None
 
             dt = pendulum.now(self.timezone).add(days=day_idx).start_of("day")
@@ -225,7 +227,7 @@ class IPMA(WeatherProvider):
     def _fetch_alerts(self):
         url = f"{_BASE}/forecast/warnings/warnings_www.json"
         try:
-            warnings = self.session.get(url).json()
+            warnings = self._get_json(url)
             for w in warnings:
                 self._alerts.append({
                     "event": w.get("awarenessTypeName", ""),

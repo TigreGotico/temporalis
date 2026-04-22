@@ -86,7 +86,7 @@ class MetNo(WeatherProvider):
     def _request(self):
         headers = {"User-Agent": _USER_AGENT}
         params = {"lat": self.latitude, "lon": self.longitude}
-        raw = self.session.get(_API_URL, params=params, headers=headers).json()
+        raw = self._get_json(_API_URL, params=params, headers=headers)
         timeseries = raw.get("properties", {}).get("timeseries", [])
         if not timeseries:
             return

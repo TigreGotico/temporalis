@@ -91,7 +91,7 @@ class OpenMeteoAirQuality(WeatherProvider):
             "hourly": ",".join(_HOURLY_PARAMS),
             "timezone": self.timezone or "UTC",
         }
-        raw = self.session.get(_API_URL, params=params).json()
+        raw = self._get_json(_API_URL, params=params)
         self._parse(raw.get("hourly", {}))
 
     def _parse(self, hourly):

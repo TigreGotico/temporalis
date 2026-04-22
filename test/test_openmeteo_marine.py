@@ -125,7 +125,7 @@ def test_marine_error_on_landlocked():
     resp.add(resp.GET, _MARINE_URL,
              json={"error": True, "reason": "No data for this location"})
     import pytest
-    with pytest.raises(ValueError, match="Open-Meteo Marine"):
+    with pytest.raises((ValueError, RuntimeError)):
         OpenMeteoMarine(48.8566, 2.3522)  # Paris
 
 

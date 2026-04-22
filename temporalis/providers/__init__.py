@@ -229,6 +229,30 @@ class WeatherProvider:
         for hour in self.hours:
             print(hour.weekday, ":", hour.datetime.time(), ":", hour.summary)
 
+    def _get_json(self, url: str, **kwargs) -> dict:
+        """GET *url* and return parsed JSON, raising a clear error on failure."""
+        resp = self.session.get(url, **kwargs)
+        if not resp.ok:
+            raise RuntimeError(
+                f"{self.__class__.__name__}: HTTP {resp.status_code} from {url}"
+            )
+        try:
+            data = resp.json()
+        except Exception as exc:
+            raise RuntimeError(
+                f"{self.__class__.__name__}: non-JSON response from {url}"
+            ) from exc
+        # Some APIs return HTTP 200 with an error payload (OWM, Open-Meteo)
+        if isinstance(data, dict) and data.get("cod") not in (None, 200, "200"):
+            raise RuntimeError(
+                f"{self.__class__.__name__}: API error — {data.get('message', data)}"
+            )
+        if isinstance(data, dict) and data.get("error"):
+            raise RuntimeError(
+                f"{self.__class__.__name__}: API error — {data.get('reason', data)}"
+            )
+        return data
+
     # internals
     def _stamp_to_datetime(self, stamp, tz_name=None):
         if tz_name:

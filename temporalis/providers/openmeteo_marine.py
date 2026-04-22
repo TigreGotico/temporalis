@@ -178,8 +178,6 @@ class OpenMeteoMarine(WeatherProvider):
         self.data["daily"] = {"summary": "marine", "icon": "marine", "data": days}
 
     def _request(self):
-        raw = self.session.get(_MARINE_URL, params=self._params()).json()
-        if "error" in raw:
-            raise ValueError(f"Open-Meteo Marine: {raw.get('reason', raw['error'])}")
+        raw = self._get_json(_MARINE_URL, params=self._params())
         self._parse_hourly(raw.get("hourly", {}))
         self._parse_daily(raw.get("daily", {}))

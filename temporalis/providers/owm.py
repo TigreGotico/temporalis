@@ -63,7 +63,7 @@ class OWM(WeatherProvider):
             url = API_URL.format(key=self.key, lat=self.latitude,
                                  lon=self.longitude,
                                  units=self._owm_units())
-        entry = self.session.get(url).json()
+        entry = self._get_json(url)
         """
         {'base': 'stations',
          'clouds': {'all': 20},  # %
@@ -200,7 +200,7 @@ class OWM(WeatherProvider):
                                  lon=self.longitude,
                                  units=self._owm_units())
 
-        res = self.session.get(url).json()
+        res = self._get_json(url)
 
         # OWM returns 3h in 3h readings
         hours = []
