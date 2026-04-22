@@ -233,3 +233,35 @@ class WeatherProvider:
         hourly_summary = days[0].summary
         hourly_icon = days[0].icon
         return hourly_summary, hourly_icon
+
+    # Registry
+    _registry = {}
+
+    @classmethod
+    def register(cls, name, provider_cls):
+        cls._registry[name.lower()] = provider_cls
+
+    @classmethod
+    def get(cls, name, lat, lon, **kwargs):
+        """Instantiate a provider by name. Example: WeatherProvider.get("metno", 38.72, -9.14)"""
+        key = name.lower()
+        if key not in cls._registry:
+            raise ValueError(f"Unknown provider {name!r}. Available: {sorted(cls._registry)}")
+        return cls._registry[key](lat, lon, **kwargs)
+
+    @classmethod
+    def from_address(cls, address, name, **kwargs):
+        """Instantiate a named provider from an address string."""
+        key = name.lower()
+        if key not in cls._registry:
+            raise ValueError(f"Unknown provider {name!r}. Available: {sorted(cls._registry)}")
+        provider_cls = cls._registry[key]
+        if hasattr(provider_cls, "from_address"):
+            return provider_cls.from_address(address, **kwargs)
+        lat, lon = geolocate(address)
+        return provider_cls(lat, lon, **kwargs)
+
+    @classmethod
+    def available(cls):
+        """Return sorted list of registered provider names."""
+        return sorted(cls._registry)
