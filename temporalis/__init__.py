@@ -18,18 +18,18 @@ class DataPoint:
         self.name = name
         self.units = units
         self.value = value
-        self.min_val = min_val or value
-        self.max_val = max_val or value
-        self.low_val = low_val or self.min_val
-        self.high_val = high_val or self.max_val
-        self.prob = prob  # probability of value
-        self.prob_min = prob_min or prob  # probability of min_value
-        self.prob_max = prob_max or prob  # probability of max_value
-        self.time = time  # ts of prediction
-        self.min_time = min_time or time  # predicted ts for min
-        self.max_time = max_time or time  # predicted ts for max
-        self.low_time = low_time or time
-        self.high_time = high_time or time
+        self.min_val = min_val if min_val is not None else value
+        self.max_val = max_val if max_val is not None else value
+        self.low_val = low_val if low_val is not None else self.min_val
+        self.high_val = high_val if high_val is not None else self.max_val
+        self.prob = prob
+        self.prob_min = prob_min if prob_min is not None else prob
+        self.prob_max = prob_max if prob_max is not None else prob
+        self.time = time
+        self.min_time = min_time if min_time is not None else time
+        self.max_time = max_time if max_time is not None else time
+        self.low_time = low_time if low_time is not None else time
+        self.high_time = high_time if high_time is not None else time
 
     @staticmethod
     def _stamp_to_datetime(stamp, tz=None):
@@ -74,8 +74,10 @@ class DataPoint:
         max_val = data.get("max_val") or data.get("max_value") or max_val
         prob_min = data.get("min_prob") or data.get("prob_min") or prob_min
         prob_max = data.get("max_prob") or data.get("prob_max") or prob_max
-        return DataPoint(name, value, units, min_val, max_val, time,
-                         min_time, max_time, prob, prob_min, prob_max)
+        return DataPoint(name, value, units,
+                         min_val=min_val, max_val=max_val,
+                         time=time, min_time=min_time, max_time=max_time,
+                         prob=prob, prob_min=prob_min, prob_max=prob_max)
 
     def __repr__(self):
         return str(self.value) + " " + self.units

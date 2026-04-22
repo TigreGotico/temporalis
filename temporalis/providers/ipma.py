@@ -11,6 +11,9 @@ _BASE = "https://api.ipma.pt/open-data"
 
 _WIND_CLASS_SPEED = {1: 5.0, 2: 15.0, 3: 35.0, 4: 55.0, 5: 75.0}
 
+# IPMA idDireccVento codes → degrees (1=N, clockwise in 16 steps of 22.5°)
+_WIND_DIR_DEG = {i: (i - 1) * 22.5 for i in range(1, 17)}
+
 _WEATHER_TYPE_ICON = {
     1: "clear", 2: "partly-cloudy", 3: "clouds", 4: "clouds",
     5: "clouds", 6: "fog", 7: "clouds", 8: "clouds", 9: "rain",
@@ -91,7 +94,7 @@ class IPMA(WeatherProvider):
         humidity = _valid(obs.get("humidade"))
         pressure = _valid(obs.get("pressao"))
         wind_speed = _valid(obs.get("intensidadeVento"))
-        wind_dir = obs.get("idDireccVento")
+        wind_dir = _WIND_DIR_DEG.get(obs.get("idDireccVento"))
         precip = _valid(obs.get("precAcumulada"))
 
         unit = "ºF" if self._units == "us" else "ºC"

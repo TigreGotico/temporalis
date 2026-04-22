@@ -7,7 +7,7 @@ def now_utc():
     Returns:
         (datetime): The current datetime in Universal Time, aka GMT
     """
-    return now()
+    return now("UTC")
 
 
 def month_to_int(month):

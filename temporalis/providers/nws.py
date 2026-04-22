@@ -111,7 +111,7 @@ class NWS(WeatherProvider):
             humidity = (p.get("relativeHumidity") or {}).get("value")
             dew_raw = p.get("dewpoint", {})
             dew_c = dew_raw.get("value") if isinstance(dew_raw, dict) else None
-            dew = self._convert_temp(_f_to_c(dew_c * 9 / 5 + 32) if dew_c is not None else None) if dew_c is not None else None
+            dew = self._convert_temp(dew_c) if dew_c is not None else None
             precip_prob = (p.get("probabilityOfPrecipitation") or {}).get("value")
             wind_mph = _parse_wind_speed(p.get("windSpeed", ""))
             wind_speed = self._convert_speed_mph(wind_mph)

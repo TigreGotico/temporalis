@@ -210,7 +210,7 @@ class OpenMeteo(WeatherProvider):
                 "temperature": DataPoint("Temperature", avg_temp, t_unit,
                                          min_val=t_min, max_val=t_max) if avg_temp is not None else None,
                 "apparentTemperature": DataPoint("ApparentTemperature",
-                                                  (ap_max + ap_min) / 2 if (ap_max and ap_min) else ap_max,
+                                                  (ap_max + ap_min) / 2 if (ap_max is not None and ap_min is not None) else ap_max,
                                                   t_unit, min_val=ap_min, max_val=ap_max) if (ap_max is not None) else None,
                 "precipitation": DataPoint("Precipitation", precip_sum, p_unit,
                                            prob=precip_prob_mean / 100 if precip_prob_mean is not None else None,
