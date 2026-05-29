@@ -1,16 +1,24 @@
 # Changelog
 
-## [0.3.1a1](https://github.com/JarbasAl/temporalis/tree/0.3.1a1) (2026-04-22)
+## [0.4.0a1](https://github.com/TigreGotico/temporalis/tree/0.4.0a1) (2026-05-29)
 
-[Full Changelog](https://github.com/JarbasAl/temporalis/compare/v0.5.0...0.3.1a1)
+[Full Changelog](https://github.com/TigreGotico/temporalis/compare/0.3.1a1...0.4.0a1)
 
 **Merged pull requests:**
 
-- release: temporalis 0.5.0 [\#1](https://github.com/JarbasAl/temporalis/pull/1) ([JarbasAl](https://github.com/JarbasAl))
+- feat: optional unblock\_requests CloudflareSession transport [\#4](https://github.com/TigreGotico/temporalis/pull/4) ([JarbasAl](https://github.com/JarbasAl))
 
-## [v0.5.0](https://github.com/JarbasAl/temporalis/tree/v0.5.0) (2026-04-22)
+## [0.3.1a1](https://github.com/TigreGotico/temporalis/tree/0.3.1a1) (2026-04-22)
 
-[Full Changelog](https://github.com/JarbasAl/temporalis/compare/4b7b0f480144a5146e1e1d256e1bfd565e790cb1...v0.5.0)
+[Full Changelog](https://github.com/TigreGotico/temporalis/compare/v0.5.0...0.3.1a1)
+
+**Merged pull requests:**
+
+- release: temporalis 0.5.0 [\#1](https://github.com/TigreGotico/temporalis/pull/1) ([JarbasAl](https://github.com/JarbasAl))
+
+## [v0.5.0](https://github.com/TigreGotico/temporalis/tree/v0.5.0) (2026-04-22)
+
+[Full Changelog](https://github.com/TigreGotico/temporalis/compare/4b7b0f480144a5146e1e1d256e1bfd565e790cb1...v0.5.0)
 
 
 
