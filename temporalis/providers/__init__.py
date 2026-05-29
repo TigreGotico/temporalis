@@ -14,7 +14,12 @@ import requests
 class WeatherProvider:
 
     def __init__(self, lat, lon, date=None, units="metric", lang="en"):
-        self.session = requests.Session()
+        try:
+            from unblock_requests import CloudflareSession
+            self.session = CloudflareSession(env_prefix="TEMPORALIS",
+                                             wayback_fallback=True)
+        except Exception:
+            self.session = requests.Session()
         self.lang = lang
         self.datetime = date or now_utc()
         self._alerts = []

@@ -23,6 +23,7 @@ Homepage = "https://github.com/OpenJarbas/temporalis"
 
 [project.optional-dependencies]
 test = ["pytest", "responses"]
+antibot = ["unblock_requests"]
 
 [tool.pytest.ini_options]
 addopts = "-p no:ovoscope"
