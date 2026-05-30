@@ -1,0 +1,14 @@
+# Decisions: Revive temporalis — core fixes + IPMA + Open-Meteo providers
+
+| Decision | Alternatives Considered | Rationale |
+| :--- | :--- | :--- |
+| Plain subclass pattern for new providers (no factory/registry) | `WeatherProvider.get("ipma", lat, lon)` registry; plugin entry points | Spec requires zero changes to base class; the existing OWM pattern is the template; registry is a future-sprint convenience |
+| IPMA uses daily forecast endpoint only; hourly populated from current observation | Build synthetic hourly from daily interpolation; raise `NotImplementedError` for `.hours` | IPMA has no public hourly endpoint; the OWM fallback (fill hourly with current data) is an established pattern in this codebase and avoids surprising `AttributeError` |
+| Nearest-city/station lookup by Euclidean distance on lat/lon | Haversine great-circle distance | Distances are small (Portugal is ~600 km across); Euclidean error is negligible and avoids a math import; matches simplicity of the existing codebase |
+| Raise `ValueError` for IPMA coordinates outside Portugal's bounding box | Silent fallback to Open-Meteo; return empty data | IPMA API silently returns garbage or 404 for foreign coordinates; failing loudly at construction time is safer than silent bad data |
+| Pin `pendulum>=2,<3` (stay on v2) | Upgrade to pendulum v3 | The codebase uses `pendulum.from_timestamp()` and `pendulum.timezone()` which broke in v3; rewriting all datetime calls is out of scope; pinning v2 is the minimal-risk fix |
+| Remove `pytz` and `python-dateutil` from deps | Keep all three datetime libs | They are redundant with `pendulum`; removing them reduces install weight and avoids version conflicts; `pendulum` covers all usage in this codebase |
+| Single Nominatim geocoding backend | Keep geocoder multi-fallback; use a paid geocoder | Nominatim is free, no key, well-maintained; the 8-provider chain was fragile and embedded personal API keys; coordinates are always preferred over address lookup |
+| `responses` library for HTTP mocking in tests | `unittest.mock.patch`; `httpretty`; `pytest-responses` | `responses` is the most ergonomic, actively maintained, and widely used for `requests`-based code; `httpretty` has known issues with `requests-cache` |
+| `pyproject.toml` with `[project.optional-dependencies]` for test deps | Keep `setup.py`; use `setup.cfg` | `pyproject.toml` is the current Python packaging standard; `setup.py` is deprecated; optional `[test]` extras keep `responses` and `pytest` out of the runtime install |
+| IPMA bounding box: lat 36–42°N, lon 6–10°W | Use the IPMA API's own `globalIdLocal` city lookup; check country code via reverse geocoding | Bounding box is instant, no network call, no extra dep; the real IPMA coverage boundary matches this box closely enough for the purpose |

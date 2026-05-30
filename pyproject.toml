@@ -22,6 +22,7 @@ dependencies = [
 Homepage = "https://github.com/OpenJarbas/temporalis"
 
 [project.optional-dependencies]
+anon = ["anon_requests"]
 test = ["pytest", "responses"]
 antibot = ["unblock_requests"]
 
