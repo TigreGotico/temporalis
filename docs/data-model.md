@@ -1,7 +1,7 @@
 # Data Model
 
 All providers normalise their upstream API responses into the classes documented here.
-Derived fields are filled automatically after parsing — see [Derived Fields](derived-fields.md).
+Derived fields are filled automatically after parsing, see [Derived Fields](derived-fields.md).
 
 ---
 
@@ -41,8 +41,8 @@ DataPoint(name, value, units,
 
 **Serialisation:**
 
-- `DataPoint.as_dict()` — returns a dict, omitting `None` fields. `temporalis/__init__.py:39`
-- `DataPoint.from_dict(data)` — reconstructs from a dict; returns `None` if input is falsy.
+- `DataPoint.as_dict()`, returns a dict, omitting `None` fields. `temporalis/__init__.py:39`
+- `DataPoint.from_dict(data)`, reconstructs from a dict, returns `None` if input is falsy.
   Accepted dict keys: `value`, `min_val`/`min_value`, `max_val`/`max_value`, `prob`,
   `prob_min`/`min_prob`, `prob_max`/`max_prob`, `time`/`datetime`, `units`/`unit`.
   `temporalis/__init__.py:46`
@@ -78,21 +78,21 @@ individual slot in hourly and daily forecasts.
 
 **Computed properties:**
 
-- `WeatherData.timezone` — timezone name string from `datetime`, or `"UTC"` if unset.
+- `WeatherData.timezone`, timezone name string from `datetime`, or `"UTC"` if unset.
   `temporalis/__init__.py:123`
-- `WeatherData.weekday` — weekday name string (e.g. `"Monday"`), or `-1` if `datetime` is
+- `WeatherData.weekday`, weekday name string (e.g. `"Monday"`), or `-1` if `datetime` is
   unset. `temporalis/__init__.py:129`
 
 **Serialisation:**
 
-- `WeatherData.as_dict()` — dict representation, omitting `None` fields. `temporalis/__init__.py:135`
-- `WeatherData.from_dict(data)` — constructs from a dict of raw values and/or `DataPoint`
+- `WeatherData.as_dict()`, dict representation, omitting `None` fields. `temporalis/__init__.py:135`
+- `WeatherData.from_dict(data)`, constructs from a dict of raw values and/or `DataPoint`
   instances. `temporalis/__init__.py:151`
 
 **Printing:**
 
-- `WeatherData.print()` — single-line summary to stdout.
-- `WeatherData.pprint()` — pretty-printed dict to stdout.
+- `WeatherData.print()`, single-line summary to stdout.
+- `WeatherData.pprint()`, pretty-printed dict to stdout.
 
 ---
 
@@ -113,8 +113,8 @@ HourlyForecast(date, hours, weather)
 | `hours` | `list[WeatherData]` | Hourly slots, ordered by time |
 | `weather` | `WeatherData` | Representative conditions for the period |
 
-- `HourlyForecast.summary` — delegates to `weather.summary`.
-- `HourlyForecast.icon` — delegates to `weather.icon`.
+- `HourlyForecast.summary`, delegates to `weather.summary`.
+- `HourlyForecast.icon`, delegates to `weather.icon`.
 - Supports iteration (`for hour in forecast`) and indexing (`forecast[n]`).
 
 ---
@@ -135,8 +135,8 @@ DailyForecast(date, days, weather)
 | `days` | `list[WeatherData]` | Daily slots, ordered by date |
 | `weather` | `WeatherData` | Representative conditions for the period |
 
-- `DailyForecast.summary` — delegates to `weather.summary`.
-- `DailyForecast.icon` — delegates to `weather.icon`.
+- `DailyForecast.summary`, delegates to `weather.summary`.
+- `DailyForecast.icon`, delegates to `weather.icon`.
 - Supports iteration and indexing.
 
 ---
@@ -155,7 +155,7 @@ DailyForecast(date, days, weather)
 
 `MinutelyForecast` is an ordered collection of `MinutelyData` objects. Supports `len()`,
 iteration, and indexing. The base class `WeatherProvider.minutely` returns an empty
-`MinutelyForecast` by default; `OWM` overrides it when One Call 3.0 data is available.
+`MinutelyForecast` by default, `OWM` overrides it when One Call 3.0 data is available.
 
 ---
 
@@ -174,8 +174,8 @@ WeatherProvider(lat, lon, date=None, units="metric", lang="en")
 |---|---|---|
 | `lat` | `float` | Latitude in decimal degrees |
 | `lon` | `float` | Longitude in decimal degrees |
-| `date` | `pendulum.DateTime` or `None` | Reference datetime; defaults to current UTC time |
-| `units` | `str` | `"metric"` (default), `"us"` / `"imperial"` / `"english"` — the latter three are normalised to `"us"` |
+| `date` | `pendulum.DateTime` or `None` | Reference datetime, defaults to current UTC time |
+| `units` | `str` | `"metric"` (default), `"us"` / `"imperial"` / `"english"`, the latter three are normalised to `"us"` |
 | `lang` | `str` | Language code for moon phase names |
 
 **Forecast accessors** (all read from `self.data`):
@@ -184,26 +184,25 @@ WeatherProvider(lat, lon, date=None, units="metric", lang="en")
 |---|---|---|
 | `weather` | `WeatherData` | Current conditions after derived-field fill | `temporalis/providers/__init__.py:149` |
 | `weather_tomorrow` | `WeatherData` | Shortcut for `weather_in_n_days(1)` | `temporalis/providers/__init__.py:155` |
-| `weather_in_n_days(n)` | `WeatherData` | Day-N entry from `days`; raises `OverflowError` if out of range | `temporalis/providers/__init__.py:158` |
+| `weather_in_n_days(n)` | `WeatherData` | Day-N entry from `days`, raises `OverflowError` if out of range | `temporalis/providers/__init__.py:158` |
 | `hourly` | `HourlyForecast` | All hourly slots, with derived fields | `temporalis/providers/__init__.py:164` |
 | `hours` | `list[WeatherData]` | Flat list of hourly slots | `temporalis/providers/__init__.py:184` |
 | `daily` | `DailyForecast` | All daily slots, with derived fields | `temporalis/providers/__init__.py:197` |
 | `days` | `list[WeatherData]` | Flat list of daily slots | `temporalis/providers/__init__.py:215` |
 | `minutely` | `MinutelyForecast` | Per-minute precipitation (empty unless overridden) | `temporalis/providers/__init__.py:188` |
-| `alerts` | `list[dict]` | Active weather alerts; empty list if unsupported | `temporalis/providers/__init__.py:119` |
+| `alerts` | `list[dict]` | Active weather alerts, empty list if unsupported | `temporalis/providers/__init__.py:119` |
 | `uv_index` | `float` or `None` | Numeric UV index from current weather | `temporalis/providers/__init__.py:110` |
 
 **Sun properties** (computed via astral, timezone-aware `pendulum.DateTime`):
-`dawn`, `sunrise`, `noon`, `sunset`, `dusk` — `temporalis/providers/__init__.py:71`
-
+`dawn`, `sunrise`, `noon`, `sunset`, `dusk` (`temporalis/providers/__init__.py:71`)
 **Moon properties** (`temporalis/providers/__init__.py:93`):
 
 | Property | Returns |
 |---|---|
-| `moon_phase` | `float` — raw astral phase value (0–28) |
-| `moon_code` | `int` — discrete phase 0–7 |
-| `moon_symbol` | `str` — Unicode symbol |
-| `moon_phase_name` | `str` — localised name in `self.lang` |
+| `moon_phase` | `float`, raw astral phase value (0–28) |
+| `moon_code` | `int`, discrete phase 0–7 |
+| `moon_symbol` | `str`, Unicode symbol |
+| `moon_phase_name` | `str`, localised name in `self.lang` |
 
 Moon phase names are available in: `en`, `nl`, `de`, `fr`, `es`, `pt`, `it`, `af`.
 
@@ -237,3 +236,6 @@ The `icon` field on `WeatherData` is a normalised string. Common values across a
 `clear`, `mostly-clear`, `partly-cloudy`, `clouds`, `fog`, `drizzle`, `freezing-drizzle`,
 `rain`, `heavy-rain`, `showers`, `heavy-showers`, `freezing-rain`, `sleet`, `snow`,
 `heavy-snow`, `snow-grains`, `snow-showers`, `thunderstorm`, `thunderstorm-hail`
+
+---
+[Home](../readme.md) · [Providers →](providers.md)

@@ -79,6 +79,9 @@ engine has its own unit-normalisation helpers that work from the `units` string 
 
 Internal helpers in `temporalis/derived.py`:
 
-- `_to_celsius(dp)` — converts temperature `DataPoint` to float °C. `temporalis/derived.py:17`
-- `_to_kmh(dp)` — converts wind speed `DataPoint` to float km/h. `temporalis/derived.py:30`
-- `_from_celsius(value_c, target_units)` — converts float °C back to the target unit string. `temporalis/derived.py:43`
+- `_to_celsius(dp)`, converts temperature `DataPoint` to float °C. `temporalis/derived.py:17`
+- `_to_kmh(dp)`, converts wind speed `DataPoint` to float km/h. `temporalis/derived.py:30`
+- `_from_celsius(value_c, target_units)`, converts float °C back to the target unit string. `temporalis/derived.py:43`
+
+---
+[← Derived Fields](derived-fields.md) · [Home](../readme.md) · [Examples →](examples.md)

@@ -63,7 +63,7 @@ for day in wx.days:
         day.weekday,
         day.datetime.date(),
         day.summary,
-        f"{t.min_val:.0f}–{t.max_val:.0f} {t.units}"
+        f"{t.min_val:.0f}-{t.max_val:.0f} {t.units}"
     )
 ```
 
@@ -84,7 +84,7 @@ print(wx.noon)
 print(wx.sunset)
 print(wx.dusk)
 
-print(wx.moon_symbol, wx.moon_phase_name)   # e.g. "🌔 Waxing gibbous"
+print(wx.moon_symbol, wx.moon_phase_name)   # e.g. "Waxing gibbous"
 print(f"{wx.moon_phase:.0%}")               # e.g. "54%"
 ```
 
@@ -290,3 +290,6 @@ WeatherProvider.session = requests_cache.CachedSession(
 # All subsequent provider instances use the cached session
 wx = WeatherProvider.get("openmeteo", 38.72, -9.14)
 ```
+
+---
+[← Units](units.md) · [Home](../readme.md) · [API Reference →](api-reference.md)
