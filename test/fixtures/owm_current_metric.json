@@ -1,0 +1,45 @@
+{
+  "coord": {
+    "lon": -9.1393,
+    "lat": 38.7223
+  },
+  "weather": [
+    {
+      "id": 800,
+      "main": "Clear",
+      "description": "clear sky",
+      "icon": "01n"
+    }
+  ],
+  "base": "stations",
+  "main": {
+    "temp": 14.45,
+    "feels_like": 14.01,
+    "temp_min": 14.19,
+    "temp_max": 15.05,
+    "pressure": 1015,
+    "humidity": 79,
+    "sea_level": 1015,
+    "grnd_level": 1005
+  },
+  "visibility": 10000,
+  "wind": {
+    "speed": 3.6,
+    "deg": 300
+  },
+  "clouds": {
+    "all": 0
+  },
+  "dt": 1776892648,
+  "sys": {
+    "type": 1,
+    "id": 6901,
+    "country": "PT",
+    "sunrise": 1776837037,
+    "sunset": 1776885552
+  },
+  "timezone": 3600,
+  "id": 8012502,
+  "name": "Socorro",
+  "cod": 200
+}
