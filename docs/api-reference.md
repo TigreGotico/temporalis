@@ -29,8 +29,7 @@ OpenMeteo and MetNo apply conversion locally.
 
 ## Shared Session
 
-`WeatherProvider.session` — `temporalis/providers/__init__.py`
-
+`WeatherProvider.session` (`temporalis/providers/__init__.py`)
 A plain `requests.Session` shared across all provider instances. Providers
 call `self.session.get(url)`. To add caching, replace the session before
 instantiating any provider:
@@ -49,15 +48,14 @@ WeatherProvider.session = requests_cache.CachedSession(backend="memory", expire_
 |---|---|---|
 | `latitude` | `float` | `temporalis/providers/__init__.py:104` |
 | `longitude` | `float` | `temporalis/providers/__init__.py:108` |
-| `timezone` | `str` | IANA timezone name via `timezonefinder` — `temporalis/providers/__init__.py:117` |
-| `units` | `str` | Normalised unit mode — `temporalis/providers/__init__.py:100` |
+| `timezone` | `str` | IANA timezone name via `timezonefinder`, `temporalis/providers/__init__.py:117` |
+| `units` | `str` | Normalised unit mode, `temporalis/providers/__init__.py:100` |
 
 ---
 
 ## Static Factory
 
-`WeatherProvider.from_address(address, key=None)` — `temporalis/providers/__init__.py:111`
-
+`WeatherProvider.from_address(address, key=None)` (`temporalis/providers/__init__.py:111`)
 Geocodes `address` and returns a base `WeatherProvider`. Each concrete
 provider overrides this to return an instance of its own class, accepting the
 same extra keyword arguments as its constructor.
@@ -68,7 +66,7 @@ Geocoding is implemented in `temporalis/location.py:6`:
    resolves.
 
 Providers with `from_address()`: `OWM`, `OpenMeteo`, `OpenMeteoHistorical`,
-`MetNo`, `IPMA`, `NWS` — all in their respective files under
+`MetNo`, `IPMA`, `NWS`, all in their respective files under
 `temporalis/providers/`.
 
 ---
@@ -81,13 +79,11 @@ Importing `temporalis.providers.registry` auto-registers all six built-in
 providers. The registry is stored as `WeatherProvider._registry`
 (`temporalis/providers/__init__.py:238`).
 
-### `WeatherProvider.register(name, cls)` — `temporalis/providers/__init__.py:241`
-
+### `WeatherProvider.register(name, cls)` (`temporalis/providers/__init__.py:241`)
 Adds `cls` to the registry under the lower-cased key `name`. Call this to
 make a custom provider available via `get()`.
 
-### `WeatherProvider.get(name, lat, lon, **kwargs)` — `temporalis/providers/__init__.py:244`
-
+### `WeatherProvider.get(name, lat, lon, **kwargs)` (`temporalis/providers/__init__.py:244`)
 Instantiates the named provider with `(lat, lon, **kwargs)`. Raises
 `ValueError` if `name` is not in the registry.
 
@@ -97,8 +93,7 @@ wx = WeatherProvider.get("openmeteo_historical", 48.85, 2.35,
                          start="2024-06-01", end="2024-06-30")
 ```
 
-### `WeatherProvider.available()` — `temporalis/providers/__init__.py:265`
-
+### `WeatherProvider.available()` (`temporalis/providers/__init__.py:265`)
 Returns a sorted list of registered provider names.
 
 ```python
@@ -106,10 +101,9 @@ WeatherProvider.available()
 # ['ipma', 'metno', 'nws', 'openmeteo', 'openmeteo_historical', 'owm']
 ```
 
-### `WeatherProvider.from_address(address, name, **kwargs)` — `temporalis/providers/__init__.py:252`
-
+### `WeatherProvider.from_address(address, name, **kwargs)` (`temporalis/providers/__init__.py:252`)
 Registry-level geocoding factory. Delegates to the named provider's own
-`from_address()` if it has one; otherwise geocodes and calls the constructor.
+`from_address()` if it has one, otherwise geocodes and calls the constructor.
 
 ```python
 wx = WeatherProvider.from_address("Oslo, Norway", name="metno")
@@ -152,12 +146,12 @@ All accessors read from `self.data`, which providers populate in `_request()`.
 
 | Property / Method | Returns | Description |
 |---|---|---|
-| `weather` | `WeatherData` | Current conditions — `temporalis/providers/__init__.py:122` |
+| `weather` | `WeatherData` | Current conditions, `temporalis/providers/__init__.py:122` |
 | `weather_tomorrow` | `WeatherData` | Shortcut for `weather_in_n_days(1)` |
-| `weather_in_n_days(n)` | `WeatherData` | Day-N forecast from the daily list; raises `OverflowError` if `n >= len(days)` |
-| `hourly` | `HourlyForecast` | Full hourly forecast object — `temporalis/providers/__init__.py:135` |
+| `weather_in_n_days(n)` | `WeatherData` | Day-N forecast from the daily list, raises `OverflowError` if `n >= len(days)` |
+| `hourly` | `HourlyForecast` | Full hourly forecast object, `temporalis/providers/__init__.py:135` |
 | `hours` | `list[WeatherData]` | Flat list of hourly `WeatherData` slots |
-| `daily` | `DailyForecast` | Full daily forecast object — `temporalis/providers/__init__.py:153` |
+| `daily` | `DailyForecast` | Full daily forecast object, `temporalis/providers/__init__.py:153` |
 | `days` | `list[WeatherData]` | Flat list of daily `WeatherData` slots |
 
 ---
@@ -202,3 +196,6 @@ Supported languages for `moon_phase_name`: `en`, `nl`, `de`, `fr`, `es`,
 | `print()` | Prints current weather to stdout |
 | `print_daily()` | Prints weekday, date, and summary for each day |
 | `print_hourly()` | Prints weekday, time, and summary for each hour |
+
+---
+[← Examples](examples.md) · [Home](../readme.md)

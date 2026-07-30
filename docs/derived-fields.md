@@ -19,8 +19,7 @@ returning data to the caller. `temporalis/derived.py:226`
 
 ## Dew Point
 
-`temporalis/derived.py:53` — `approx_dew_point(temp_dp, humidity_dp)`
-
+`temporalis/derived.py:53` (`approx_dew_point(temp_dp, humidity_dp)`)
 **Condition:** `WeatherData.dewPoint is None` and both `temperature` and `humidity` are present.
 
 **Formula (August-Roche-Magnus approximation):**
@@ -34,7 +33,7 @@ where T is temperature in °C and RH is relative humidity in %.
 
 **Inputs:**
 
-- Temperature: any unit (`ºC`, `ºF`, `K`); normalised to °C before computation.
+- Temperature: any unit (`ºC`, `ºF`, `K`), normalised to °C before computation.
   `temporalis/derived.py:17`
 - Humidity: `%`, taken as-is.
 
@@ -46,14 +45,13 @@ The implementation clamps RH to [1, 100] before applying the formula. `temporali
 **Accuracy:** Error < 0.4 °C within the valid range.
 
 **Limitations:** Accuracy degrades outside the valid temperature range. The formula is an
-approximation of the full Magnus equation — it does not account for pressure or altitude.
+approximation of the full Magnus equation, it does not account for pressure or altitude.
 
 ---
 
 ## Apparent Temperature
 
-`temporalis/derived.py:74` — `approx_apparent_temp(temp_dp, humidity_dp, wind_dp)`
-
+`temporalis/derived.py:74` (`approx_apparent_temp(temp_dp, humidity_dp, wind_dp)`)
 **Condition:** `WeatherData.apparentTemperature is None`, or its value equals the plain
 temperature (provider echo detection). `temporalis/derived.py:241`
 
@@ -102,15 +100,14 @@ when neither formula's conditions are met.
 - No formula is applied in the moderate range (10 °C–27 °C) or at low wind + low humidity,
   so `apparentTemperature` may remain equal to the plain temperature in those conditions.
 - Wind chill does not account for solar radiation.
-- Heat index is based on shaded, sea-level conditions; accuracy decreases at altitude or
+- Heat index is based on shaded, sea-level conditions, accuracy decreases at altitude or
   in direct sunlight.
 
 ---
 
 ## Snow
 
-`temporalis/derived.py:208` — `approx_snow(temp_dp, precip_dp)`
-
+`temporalis/derived.py:208` (`approx_snow(temp_dp, precip_dp)`)
 **Condition:** `WeatherData.snow is None` and both `temperature` and `precipitation` are present.
 
 **Rule:** If temperature ≤ 2 °C and `precipitation.value > 0`, then `snow` is set equal to
@@ -120,7 +117,7 @@ when neither formula's conditions are met.
 
 - The 2 °C threshold is a heuristic. In reality, mixed precipitation (rain and snow) is
   common between 0 °C and 4 °C depending on air mass depth and surface albedo.
-- No rain/snow ratio is applied — the full precipitation amount is treated as snow water
+- No rain/snow ratio is applied, the full precipitation amount is treated as snow water
   equivalent.
 - This field is only filled when the provider does not supply a snow value. Providers that
   return snow directly (e.g. OpenMeteo with `snowfall`) will not be overridden.
@@ -129,8 +126,7 @@ when neither formula's conditions are met.
 
 ## UV Index
 
-`temporalis/derived.py:179` — `approx_uv_index(lat, lon, dt, cloud_cover_dp)`
-
+`temporalis/derived.py:179` (`approx_uv_index(lat, lon, dt, cloud_cover_dp)`)
 **Condition:** `WeatherData.uvIndex is None` and `lat`, `lon`, and `datetime` are available.
 `temporalis/derived.py:257`
 
@@ -174,8 +170,7 @@ where C is cloud cover in %. When cloud cover is not available, `cloud_factor = 
 
 ## Entry Point
 
-`temporalis/derived.py:226` — `fill_derived(wd, lat=None, lon=None)`
-
+`temporalis/derived.py:226` (`fill_derived(wd, lat=None, lon=None)`)
 Applies all four derivations in sequence to a single `WeatherData` object. Mutates `wd`
 in-place and returns it for chaining. Safe to call when fields are already populated.
 
@@ -188,6 +183,9 @@ wd = fill_derived(wd, lat=38.72, lon=-9.14)
 Call order:
 
 1. Dew point (requires temperature + humidity)
-2. Apparent temperature (requires temperature; optionally humidity and wind speed)
+2. Apparent temperature (requires temperature, optionally humidity and wind speed)
 3. Snow (requires temperature + precipitation)
-4. UV index (requires lat, lon, datetime; optionally cloud cover)
+4. UV index (requires lat, lon, datetime, optionally cloud cover)
+
+---
+[← Providers](providers.md) · [Home](../readme.md) · [Units →](units.md)

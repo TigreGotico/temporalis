@@ -1,26 +1,26 @@
 # [Temporalis](https://en.wiktionary.org/wiki/temporalis#Adjective)
 
-Unified weather abstraction library for Python. Query multiple weather
-services through one consistent API, with automatic field derivation, marine
-forecasts, and an ensemble mode that merges all free sources in parallel.
+Temporalis is a weather library for Python. It queries several weather
+services through one consistent API. It derives missing fields
+automatically, supports marine forecasts, and offers an ensemble mode that
+merges all free sources in parallel.
 
 ## Why another weather library?
 
-Most Python weather packages are thin wrappers around a single API. Switch
-providers and you rewrite your whole application. Temporalis solves a different
-problem: **make the provider an implementation detail**.
+Most Python weather packages wrap a single API. If you switch providers, you
+rewrite your application. Temporalis keeps the provider as an implementation
+detail.
 
-Every provider — whether it's a global model, a national government API, or a
-free open-data feed — returns the same objects: `WeatherData`, `DataPoint`,
+Every provider (a global model, a national government API, or a free
+open-data feed) returns the same objects: `WeatherData`, `DataPoint`,
 `HourlyForecast`, `DailyForecast`. Your code never touches raw JSON.
 
-### The data model earns its keep
+### The data model
 
-**`DataPoint` is not a float.** A temperature reading has a value, but it also
-has a unit, a min, a max, a probability, and a timestamp. A wind speed has a
-unit that differs between providers. `DataPoint` captures all of that in one
-object that serialises cleanly and degrades gracefully when a provider doesn't
-supply a field:
+A temperature reading is not a plain float. It has a value, a unit, a
+minimum, a maximum, a probability, and a timestamp. `DataPoint` holds all of
+that in one object. It serializes cleanly and degrades gracefully when a
+provider does not supply a field:
 
 ```python
 temp = wx.weather.temperature
@@ -28,9 +28,9 @@ print(temp.value, temp.units)       # 18.5 ºC
 print(temp.min_val, temp.max_val)   # daily range, if the provider supplies it
 ```
 
-**Missing fields are filled automatically.** When a provider doesn't return
-dew point, apparent temperature, snow, or UV index, Temporalis derives them
-from whatever data is available using standard meteorological formulas:
+When a provider does not return dew point, apparent temperature, snow, or
+UV index, Temporalis derives these fields from the data it has, using
+standard meteorological formulas:
 
 ```python
 wx = MetNo(lat, lon)
@@ -39,11 +39,11 @@ print(wx.weather.uvIndex)           # derived from solar position + cloud cover
 print(wx.weather.snow)              # derived when T ≤ 2°C and precipitation > 0
 ```
 
-**Sun and moon are first-class, not bolted on.** Every provider exposes `dawn`,
-`dusk`, `sunrise`, `sunset`, `noon`, `moon_phase`, and `moon_phase_name` with no
-extra API call — computed from coordinates via `astral`.
+Every provider also exposes `dawn`, `dusk`, `sunrise`, `sunset`, `noon`,
+`moon_phase`, and `moon_phase_name`, computed from coordinates with `astral`.
+No extra API call is needed.
 
-**Swap providers without changing your code:**
+You can swap providers without changing the rest of your code:
 
 ```python
 # works identically for OWM, OpenMeteo, MetNo, IPMA, NWS, Ensemble
@@ -64,10 +64,10 @@ pip install temporalis
 | `Ensemble` | Global | None (OWM optional) | Merges all applicable sources in parallel |
 | `OpenMeteo` | Global | None | Forecast + historical archive |
 | `MetNo` | Global | None | Norwegian Met Institute |
-| `OWM` | Global | Required | OpenWeatherMap; default key bundled |
+| `OWM` | Global | Required | OpenWeatherMap, default key bundled |
 | `NWS` | USA only | None | Raises `ValueError` outside US |
 | `IPMA` | Portugal only | None | Raises `ValueError` outside PT |
-| `OpenMeteoMarine` | Ocean | None | Wave, swell, current; raises `ValueError` for landlocked coords |
+| `OpenMeteoMarine` | Ocean | None | Wave, swell, current, raises `ValueError` for landlocked coords |
 | `OpenMeteoAirQuality` | Global | None | PM2.5, ozone, pollen, NO₂ |
 
 ## Quick Start
@@ -97,7 +97,7 @@ print(wx.dawn, wx.sunrise, wx.noon, wx.sunset, wx.dusk)
 print(wx.moon_symbol, wx.moon_phase_name)
 ```
 
-### Ensemble — best data from all free sources
+### Ensemble: combine all free sources
 
 ```python
 from temporalis.providers.ensemble import Ensemble
@@ -108,7 +108,7 @@ print(wx.providers)          # ['openmeteo', 'metno', 'ipma', 'openmeteo_marine'
 
 w = wx.weather
 print(w.temperature)         # mean across all providers
-# min_val / max_val reflect inter-provider spread — wide = low confidence
+# min_val / max_val reflect inter-provider spread: wide means low confidence
 print(w.temperature.min_val, w.temperature.max_val)
 
 print(w.waveHeight)          # from OpenMeteoMarine when coastal
@@ -162,7 +162,7 @@ wx = Ensemble.from_address("Oslo, Norway")
 ## Units
 
 Pass `units="metric"` (default) or `units="us"` to any provider constructor.
-Each provider converts locally — API-native units are never exposed raw.
+Each provider converts units locally. The API never exposes raw native units.
 
 ```python
 wx_us = OpenMeteo(lat, lon, units="us")
@@ -183,7 +183,8 @@ wx.session = requests_cache.CachedSession("weather_cache", expire_after=600)
 
 ## Derived fields
 
-Fields filled automatically when the provider doesn't supply them:
+Temporalis fills these fields automatically when a provider does not supply
+them:
 
 | Field | Formula | Inputs |
 |---|---|---|
@@ -192,8 +193,8 @@ Fields filled automatically when the provider doesn't supply them:
 | `snow` | precipitation when T ≤ 2°C | temp + precipitation |
 | `uvIndex` | NOAA solar position + Josefsson cloud attenuation | lat/lon + datetime + cloud cover |
 
-See [docs/derived-fields.md](docs/derived-fields.md) for formulas, validity
-ranges, and accuracy limits.
+See [docs/derived-fields.md](docs/derived-fields.md) for the formulas,
+their valid ranges, and their accuracy limits.
 
 ## License
 

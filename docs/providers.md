@@ -6,12 +6,12 @@ Data is fetched from the upstream API on construction.
 
 ---
 
-## OWM — OpenWeatherMap
+## OWM, OpenWeatherMap
 
 `temporalis/providers/owm.py:17`
 
 **Coverage:** Global.
-**API key:** Required. A default bundled key is included for testing; supply your own
+**API key:** Required. A default bundled key is included for testing, supply your own
 for production use.
 
 ```python
@@ -26,9 +26,9 @@ OWM.from_address(address, key=None)
 
 **What it fetches:**
 
-- Current conditions via `/data/2.5/weather` — temperature, apparent temperature, humidity,
+- Current conditions via `/data/2.5/weather`, temperature, apparent temperature, humidity,
   pressure, cloud cover, visibility, wind speed, wind bearing, precipitation.
-- 5-day / 3-hourly forecast via `/data/2.5/forecast` — same fields. Daily summaries are
+- 5-day / 3-hourly forecast via `/data/2.5/forecast`, same fields. Daily summaries are
   synthesised by averaging over the 3-hour slots that fall on the same calendar day.
 - Per-minute precipitation via One Call 3.0 `/data/3.0/onecall` (requires a paid key).
   Silently skipped on 401/402 or missing radar coverage. `temporalis/providers/owm.py:314`
@@ -45,7 +45,7 @@ converts both locally when `units="us"` is requested. `temporalis/providers/owm.
 | Wind speed | always m/s | converted to mph locally |
 | Precipitation | always mm | converted to inches locally |
 
-**Alerts:** Not supported; `alerts` returns `[]`.
+**Alerts:** Not supported, `alerts` returns `[]`.
 
 **Minutely:** Returns populated `MinutelyForecast` when a One Call 3.0 key is used and
 radar coverage is available for the location. Each `MinutelyData` has `precipitation`
@@ -53,7 +53,7 @@ radar coverage is available for the location. Each `MinutelyData` has `precipita
 
 ---
 
-## OpenMeteo — Open-Meteo
+## OpenMeteo, Open-Meteo
 
 `temporalis/providers/openmeteo.py:59`
 
@@ -68,8 +68,8 @@ OpenMeteo.from_address(address, **kwargs)
 
 | Parameter | Default | Description |
 |---|---|---|
-| `start` | `None` — forecast mode | Start date `"YYYY-MM-DD"` for archive mode |
-| `end` | same as `start` | End date `"YYYY-MM-DD"`; single day when omitted |
+| `start` | `None`, forecast mode | Start date `"YYYY-MM-DD"` for archive mode |
+| `end` | same as `start` | End date `"YYYY-MM-DD"`, single day when omitted |
 
 When `start` is omitted the provider queries the live forecast API. When `start` is
 supplied it queries the archive API (`https://archive-api.open-meteo.com/v1/archive`).
@@ -105,7 +105,7 @@ conversion is needed. `temporalis/providers/openmeteo.py:90`
 
 ---
 
-## MetNo — Norwegian Met Institute
+## MetNo, Norwegian Met Institute
 
 `temporalis/providers/metno.py:43`
 
@@ -126,7 +126,7 @@ MetNo.from_address(address, **kwargs)
   `temporalis/providers/metno.py:86`
 - Current conditions are set from the first timeseries entry.
 - Daily summaries are synthesised from hourly entries grouped by calendar day: temperature
-  min/max/average is computed; icon and summary come from the first entry of each day.
+  min/max/average is computed, icon and summary come from the first entry of each day.
 
 **Unit quirks:**
 
@@ -139,15 +139,15 @@ The provider converts locally. `temporalis/providers/metno.py:56`
 | Wind speed | m/s | mph (locally) |
 | Precipitation | mm | inches (locally) |
 
-**Alerts:** Not supported; `alerts` returns `[]`.
+**Alerts:** Not supported, `alerts` returns `[]`.
 
-**Note:** The UV index field from Met.no is `ultraviolet_index_clear_sky` — it represents
+**Note:** The UV index field from Met.no is `ultraviolet_index_clear_sky`, it represents
 clear-sky conditions and does not account for cloud cover. The derived-field engine may
 override it with a cloud-attenuated estimate if the provider value is absent.
 
 ---
 
-## NWS — NOAA National Weather Service
+## NWS, NOAA National Weather Service
 
 `temporalis/providers/nws.py:48`
 
@@ -164,7 +164,7 @@ NWS.from_address(address, **kwargs)
 
 **What it fetches:**
 
-1. `/points/{lat},{lon}` — resolves the grid office and forecast URLs for the location.
+1. `/points/{lat},{lon}`, resolves the grid office and forecast URLs for the location.
 2. Hourly forecast (forecastHourly URL): temperature, humidity, dew point, wind speed/direction,
    precipitation probability.
 3. Daily forecast (forecast URL): temperature high/low (day/night pairs merged into a
@@ -176,17 +176,17 @@ Alerts are dicts with keys: `event`, `severity`, `headline`, `description`, `ons
 **Unit quirks:**
 
 The NWS API always returns temperatures in °F and wind speeds in mph. Dew point is an
-exception — it is returned in °C from the API (`dewpoint.value`). The provider handles
+exception, it is returned in °C from the API (`dewpoint.value`). The provider handles
 each field's native unit independently. `temporalis/providers/nws.py:75`
 
 | Field | API native | Converted for `units="metric"` |
 |---|---|---|
 | Temperature | °F | °C (locally) |
 | Wind speed | mph | m/s (locally) |
-| Dew point | °C | kept as °C; converted to °F for `units="us"` |
+| Dew point | °C | kept as °C, converted to °F for `units="us"` |
 | Precipitation | probability only | no amount |
 
-NWS does not provide precipitation amounts; the `precipitation` DataPoint on each hourly
+NWS does not provide precipitation amounts, the `precipitation` DataPoint on each hourly
 entry has `value=None` and carries probability in `prob`. `temporalis/providers/nws.py:151`
 
 Wind speed strings such as `"10 to 15 mph"` are parsed as the average of the range.
@@ -197,7 +197,7 @@ the NWS API and will always be `None` (or filled by the derived-field engine whe
 
 ---
 
-## IPMA — Portuguese Met Authority
+## IPMA, Portuguese Met Authority
 
 `temporalis/providers/ipma.py:45`
 
@@ -225,7 +225,7 @@ Alerts are dicts with keys: `event`, `severity`, `headline`, `description`, `ons
 
 **Unit quirks:**
 
-IPMA observations use m/s for wind; IPMA forecast wind is given as a class code (1–5)
+IPMA observations use m/s for wind, IPMA forecast wind is given as a class code (1–5)
 mapped to representative km/h speeds. The provider converts each independently.
 `temporalis/providers/ipma.py:63`
 
@@ -262,7 +262,7 @@ OpenMeteoAirQuality.from_address(address, **kwargs)
 
 This provider queries the Open-Meteo Air Quality API (`https://air-quality-api.open-meteo.com/v1/air-quality`)
 and returns `AirQualityData` objects rather than standard `WeatherData`. Standard forecast
-accessors (`weather`, `days`, `hours`) are stubs — use the air-quality-specific accessors instead.
+accessors (`weather`, `days`, `hours`) are stubs, use the air-quality-specific accessors instead.
 
 **Air-quality-specific accessors:**
 
@@ -286,7 +286,7 @@ accessors (`weather`, `days`, `hours`) are stubs — use the air-quality-specifi
 | `european_aqi` | dimensionless |
 | `us_aqi` | dimensionless |
 | `uv_index` | dimensionless |
-| `summary` | str — AQI label |
+| `summary` | str, AQI label |
 
 AQI labels (European index): `good` (0–20), `fair` (20–40), `moderate` (40–60),
 `poor` (60–80), `very-poor` (80–100), `extremely-poor` (>100). `temporalis/providers/openmeteo_airquality.py:14`
@@ -317,3 +317,6 @@ Register a custom provider:
 ```python
 WeatherProvider.register("myprovider", MyProvider)
 ```
+
+---
+[← Data Model](data-model.md) · [Home](../readme.md) · [Derived Fields →](derived-fields.md)
